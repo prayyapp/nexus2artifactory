@@ -333,11 +333,9 @@ class Menu:
                 unicurses.wmove(buf, y, x - 1)
             elif ch == unicurses.KEY_RIGHT and x < length:
                 unicurses.wmove(buf, y, x + 1)
-            elif ch in (ord('\b'), unicurses.KEY_BACKSPACE) and x > 0:
+            elif ch in (ord('\b'), ord('\x7f'), unicurses.KEY_BACKSPACE,
+                        unicurses.KEY_DC) and x > 0:
                 unicurses.wmove(buf, y, x - 1)
-                unicurses.wdelch(buf)
-                length -= 1
-            elif ch in (ord('\x7f'), unicurses.KEY_DC) and x < length:
                 unicurses.wdelch(buf)
                 length -= 1
             elif ord(' ') <= ch <= ord('~') and length < maxwidth:
