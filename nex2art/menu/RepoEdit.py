@@ -80,7 +80,6 @@ class RepoEdit(Menu):
         return True
 
     def supporttype(self, newtype):
-        if newtype == 'npm' and self.cls == 'local': return False
         return True
 
     def verify(self):

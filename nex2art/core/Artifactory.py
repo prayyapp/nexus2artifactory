@@ -78,6 +78,7 @@ class Artifactory:
                 path = re.sub('^file:/+', '/', path)
                 path = os.path.abspath(path)
             else: path = os.path.join(storage, name)
+            if not os.path.isdir(path): continue
             cmd = ['art', 'upload', '--flat=false', '--regexp=true']
             cmd.append('--user=' + str(self.user))
             cmd.append('--password=' + str(self.pasw))

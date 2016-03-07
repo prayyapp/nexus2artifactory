@@ -146,8 +146,6 @@ handful of reasons that an initial configuration might not be valid:
 - A Nexus repository has a name that would be invalid in Artifactory.
 - A Nexus "shadow repository" is marked for migration. These cannot be migrated,
   as Artifactory does not have an equivalent concept.
-- A local NPM repository is marked for migration. These are currently not
-  supported by the tool, but will be in the near future.
 
 Since the `central-m1` repository is a shadow, it can't be migrated, so it must
 be unmarked. Type `m` to unmark it, and then type `q` to go back to the
@@ -169,7 +167,6 @@ in development, and should be added to the tool soon:
 - migrate scheduled tasks
 - migrate other instance-wide settings
 - support paid Nexus features, such as custom metadata
-- migrate local NPM repositories
 - modify virtual repository child lists
 - modify repository package types
 - remove the dependency on the Artifactory CLI
