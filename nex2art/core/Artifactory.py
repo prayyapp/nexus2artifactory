@@ -98,6 +98,7 @@ class Artifactory:
             tag = item.tag[len(ns):] if item.tag.startswith(ns) else item.tag
             if tag == 'key': item.text = src["LDAP Setting Name"]
             elif tag == 'name': item.text = src["LDAP Group Name"]
+            elif tag == 'enabledLdap': item.text = src["LDAP Setting Name"]
             elif tag == 'managerPassword' and 'managerDn' in data:
                 item.text = src["LDAP Password"]
             elif tag in data: item.text = data[tag]
@@ -141,7 +142,7 @@ class Artifactory:
         ET.SubElement(lgrp, ns + 'filter')
         ET.SubElement(lgrp, ns + 'descriptionAttribute').text = 'description'
         ET.SubElement(lgrp, ns + 'strategy')
-        ET.SubElement(lgrp, ns + 'enabledLdap').text = 'migratedNexusSetting'
+        ET.SubElement(lgrp, ns + 'enabledLdap')
         return ldap
 
     def buildrepomap(self, conf):
