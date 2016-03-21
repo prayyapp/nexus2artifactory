@@ -34,6 +34,7 @@ class Artifactory:
             root = artxml.getroot()
             ns = root.tag[:root.tag.index('}') + 1]
             self.migraterepos(conf, root, ns)
+            self.migrateldap(conf, root, ns)
             fobj = StringIO.StringIO()
             artxml.write(fobj)
             stat, resp = self.dorequest(conn, 'POST', cfg, fobj.getvalue())
@@ -43,8 +44,7 @@ class Artifactory:
                 raise MigrationError(msg)
             self.migrateartifacts(conf)
             return True
-        except MigrationError as ex:
-            return ex.value
+        except MigrationError as ex: return ex.value
 
     def migraterepos(self, conf, root, ns):
         xmlrepos = self.buildxmlmap(root, ns)
@@ -86,10 +86,63 @@ class Artifactory:
             cmd.append(str('(^[^.].*/)'))
             cmd.append(str(src["Repo Name (Artifactory)"] + '/'))
             with open(os.devnull, 'w') as f:
-                try:
-                    subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
-                except OSError as ex:
-                    raise MigrationError(str(ex))
+                try: subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
+                except OSError as ex: raise MigrationError(str(ex))
+
+    def migrateldap(self, conf, root, ns):
+        src = conf["Options Migration Setup"]["LDAP Migration Setup"]
+        if src["Migrate LDAP"] == False: return
+        data = self.scr.nexus.ldap
+        ldap = self.buildldap(ns)
+        for item in ldap.iter():
+            tag = item.tag[len(ns):] if item.tag.startswith(ns) else item.tag
+            if tag == 'key': item.text = src["LDAP Setting Name"]
+            elif tag == 'name': item.text = src["LDAP Group Name"]
+            elif tag == 'managerPassword' and 'managerDn' in data:
+                item.text = src["LDAP Password"]
+            elif tag in data: item.text = data[tag]
+        sec = root.find(ns + 'security')
+        sets = sec.find(ns + 'ldapSettings')
+        newset = ldap.find(ns + 'ldapSetting')
+        ldap.remove(newset)
+        key = newset.find(ns + 'key')
+        for grp in sets.findall(ns + 'ldapGroupSetting'):
+            if grp.find(ns + 'key').text == key: sets.remove(grp)
+        sets.append(newset)
+        if 'strategy' not in data: return
+        grps = sec.find(ns + 'ldapGroupSettings')
+        newgrp = ldap.find(ns + 'ldapGroupSetting')
+        ldap.remove(newgrp)
+        name = newgrp.find(ns + 'name')
+        for grp in grps.findall(ns + 'ldapGroupSetting'):
+            if grp.find(ns + 'name').text == name: grps.remove(grp)
+        grps.append(newgrp)
+
+    def buildldap(self, ns):
+        ldap = ET.Element('ldap')
+        lset = ET.SubElement(ldap, ns + 'ldapSetting')
+        ET.SubElement(lset, ns + 'key')
+        ET.SubElement(lset, ns + 'enabled').text = 'true'
+        ET.SubElement(lset, ns + 'ldapUrl')
+        srch = ET.SubElement(lset, ns + 'search')
+        ET.SubElement(srch, ns + 'searchFilter')
+        ET.SubElement(srch, ns + 'searchBase')
+        ET.SubElement(srch, ns + 'searchSubTree')
+        ET.SubElement(srch, ns + 'managerDn')
+        ET.SubElement(srch, ns + 'managerPassword')
+        ET.SubElement(lset, ns + 'autoCreateUser').text = 'false'
+        ET.SubElement(lset, ns + 'emailAttribute')
+        lgrp = ET.SubElement(ldap, ns + 'ldapGroupSetting')
+        ET.SubElement(lgrp, ns + 'name')
+        ET.SubElement(lgrp, ns + 'groupBaseDn')
+        ET.SubElement(lgrp, ns + 'groupNameAttribute')
+        ET.SubElement(lgrp, ns + 'groupMemberAttribute')
+        ET.SubElement(lgrp, ns + 'subTree')
+        ET.SubElement(lgrp, ns + 'filter')
+        ET.SubElement(lgrp, ns + 'descriptionAttribute').text = 'description'
+        ET.SubElement(lgrp, ns + 'strategy')
+        ET.SubElement(lgrp, ns + 'enabledLdap').text = 'migratedNexusSetting'
+        return ldap
 
     def buildrepomap(self, conf):
         repomap = {}
@@ -248,8 +301,7 @@ class Artifactory:
             conn.close()
         except: return None, None
         try:
-            if self.json.match(ctype) != None:
-                msg = json.loads(msg)
+            if self.json.match(ctype) != None: msg = json.loads(msg)
             elif self.xml.match(ctype) != None:
                 fobj = StringIO.StringIO(msg)
                 msg = ET.parse(fobj)

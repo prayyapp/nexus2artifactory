@@ -1,6 +1,6 @@
 import json
 from ..core import Menu
-from . import Setup, Repo, Safety
+from . import Setup, Repo, Options, Safety
 
 # The main menu. This is the first menu that appears when the tool is started,
 # and it's the hub that everything else can be accessed through. It contains
@@ -15,9 +15,11 @@ class Main(Menu):
         self.loadopt = self.mkopt('l', "Load Configuration",
                                   [self.preload, '|', self.load])
         self.repopt = self.mkopt('r', "Repository Migration Setup", Repo(scr))
+        self.optopt = self.mkopt('o', "Options Migration Setup", Options(scr))
         self.opts = [
             self.mkopt('i', "Initial Setup", [Setup(scr), self.statrefresh]),
             self.repopt,
+            self.optopt,
             None,
             self.saveopt,
             self.loadopt,
@@ -30,6 +32,7 @@ class Main(Menu):
     # When setup runs, refresh the view, as there may be new statuses.
     def statrefresh(self, _):
         self.repopt['stat'] = self.repopt['act'][0].verify()
+        self.optopt['stat'] = self.optopt['act'][0].verify()
         self.scr.msg = None
 
     # Run full verification on the configuration, using the menu's verify()
