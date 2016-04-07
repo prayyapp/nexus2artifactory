@@ -90,6 +90,8 @@ class Artifactory:
                 except OSError as ex: raise MigrationError(str(ex))
 
     def migrateldap(self, conf, root, ns):
+        if "LDAP Migration Setup" not in conf["Options Migration Setup"]:
+            return
         src = conf["Options Migration Setup"]["LDAP Migration Setup"]
         if src["Migrate LDAP"] == False: return
         data = self.scr.nexus.ldap
