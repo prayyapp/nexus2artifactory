@@ -75,15 +75,16 @@ class Artifactory:
             repomap = self.scr.nexus.repomap
             if repomap and name in repomap and 'localurl' in repomap[name]:
                 path = repomap[name]['localurl']
-                path = re.sub('^file:/+', '/', path)
+                path = re.sub('^file:/(.):/', '\\1:/', path)
+                path = re.sub('^file:/', '/', path)
                 path = os.path.abspath(path)
             else: path = os.path.join(storage, name)
             if not os.path.isdir(path): continue
-            cmd = ['art', 'upload', '--flat=false', '--regexp=true']
+            cmd = ['jfrog', 'rt', 'upload', '--flat=false', '--regexp=true']
             cmd.append('--user=' + str(self.user))
             cmd.append('--password=' + str(self.pasw))
             cmd.append('--url=' + str(url))
-            cmd.append(str('(^[^.].*/)'))
+            cmd.append(str('(^[^.].*' + re.escape(os.path.sep) + ')'))
             cmd.append(str(src["Repo Name (Artifactory)"] + '/'))
             with open(os.devnull, 'w') as f:
                 try: subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
