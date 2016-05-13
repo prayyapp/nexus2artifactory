@@ -1,6 +1,7 @@
 import json
+import copy
 from ..core import Menu
-from . import Setup, Repo, Options, Safety
+from . import Setup, Repo, Security, Options, Safety
 
 # The main menu. This is the first menu that appears when the tool is started,
 # and it's the hub that everything else can be accessed through. It contains
@@ -11,14 +12,18 @@ class Main(Menu):
     # Initialize the main menu by setting up the options.
     def __init__(self, scr):
         Menu.__init__(self, scr, "Nexus -> Artifactory")
-        self.saveopt = self.mkopt('s', "Save Configuration", ['|', self.save])
+        self.scr.mainmenu = self
+        self.saveopt = self.mkopt('s', "Save Configuration",
+                                  ['|', self.save], save=False)
         self.loadopt = self.mkopt('l', "Load Configuration",
-                                  [self.preload, '|', self.load])
+                                  [self.preload, '|', self.load], save=False)
         self.repopt = self.mkopt('r', "Repository Migration Setup", Repo(scr))
+        self.secopt = self.mkopt('u', "Security Migration Setup", Security(scr))
         self.optopt = self.mkopt('o', "Options Migration Setup", Options(scr))
         self.opts = [
             self.mkopt('i', "Initial Setup", [Setup(scr), self.statrefresh]),
             self.repopt,
+            self.secopt,
             self.optopt,
             None,
             self.saveopt,
@@ -28,10 +33,12 @@ class Main(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Exit", None, hdoc=False)]
+        self.scr.oldstate = self.collectconf()
 
     # When setup runs, refresh the view, as there may be new statuses.
     def statrefresh(self, _):
         self.repopt['stat'] = self.repopt['act'][0].verify()
+        self.secopt['stat'] = self.secopt['act'][0].verify()
         self.optopt['stat'] = self.optopt['act'][0].verify()
         self.scr.msg = None
 
@@ -59,10 +66,9 @@ class Main(Menu):
         try:
             f = open(sel['val'], 'w')
             conf = self.collectconf()
-            if 'Save Configuration' in conf: del conf['Save Configuration']
-            if 'Load Configuration' in conf: del conf['Load Configuration']
             json.dump(conf, f, indent=4)
             self.scr.msg = ('val', "Successfully saved to specified file.")
+            self.scr.oldstate = conf
             sel['stat'] = True
         except:
             self.scr.msg = ('err', "Unable to save to specified file.")
@@ -71,34 +77,32 @@ class Main(Menu):
             if f != None: f.close()
         if sel['stat'] == True and self.loadopt['val'] == None:
             self.loadopt['val'] = sel['val']
-        self.scr.modified = None
 
     # Before loading a JSON object from a file, if there are unsaved changes,
     # ensure that the user wants to discard them.
     def preload(self, sel):
-        if self.scr.modified and not Safety(self.scr).show(): return False
+        if self.scr.modified() and not Safety(self.scr).show(): return False
 
     # Load a JSON object from a file, and apply the configuration state
     # specified by that object as the current state. The parameter 'sel' is the
     # menu option that ran this function.
     def load(self, sel):
-        value = sel['val']
         if sel['val'] == None: return
         f = None
         try:
             f = open(sel['val'], 'r')
-            self.applyconf(json.load(f))
+            conf = json.load(f)
+            self.applyconf(copy.deepcopy(conf))
             if self.verify():
                 self.scr.msg = ('val', "Configuration loaded successfully.")
             else:
                 self.scr.msg = ('err', "Configuration loaded, errors found.")
+            self.scr.oldstate = conf
             sel['stat'] = True
         except:
             self.scr.msg = ('err', "Unable to load from specified file.")
             sel['stat'] = False
         finally:
             if f != None: f.close()
-        sel['val'] = value
         if sel['stat'] == True and self.saveopt['val'] == None:
             self.saveopt['val'] = sel['val']
-        self.scr.modified = None

@@ -5,7 +5,7 @@ class Safety(Menu):
         Menu.__init__(self, scr, "Are You Sure?")
         self.discard = False
         self.opts = [
-            self.mkopt('INFO', '', None, val="WARNING",
+            self.mkopt('INFO', '', None, val="WARNING!",
                        verif=(lambda _: False)),
             None,
             self.mkopt('INFO', "You have unsaved changes.", None),

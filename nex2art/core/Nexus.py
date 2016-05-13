@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+from . import Security, Ldap
 
 class Nexus:
     def __init__(self):
@@ -7,7 +8,8 @@ class Nexus:
         self.repos = None
         self.repomap = None
         self.dirty = True
-        self.ldap = None
+        self.ldap = Ldap()
+        self.security = Security()
 
     def refresh(self, path):
         repos, repomap = [], {}
@@ -15,7 +17,8 @@ class Nexus:
         self.repos = None
         self.repomap = None
         self.dirty = True
-        self.ldap = None
+        self.ldap.initialize()
+        self.security.initialize()
         if path == None: return True
         path = os.path.abspath(path)
         config = os.path.join(path, 'conf', 'nexus.xml')
@@ -23,6 +26,7 @@ class Nexus:
             return "Given path is not a valid Nexus instance."
         try:
             xml = ET.parse(config).getroot()
+            self.security.gettargets(xml)
             for repo in xml.find('repositories').findall('repository'):
                 repodata = {}
                 repodata['id'] = repo.find('id').text
@@ -41,66 +45,13 @@ class Nexus:
                 repomap[repodata['id']] = repodata
         except: return "Configuration file nexus.xml is not valid."
         repos.sort(key=lambda x: x['class'])
-        ldapxml, ldap = os.path.join(path, 'conf', 'ldap.xml'), None
-        if os.path.isfile(ldapxml):
-            try: ldap = self.getldap(ldapxml)
-            except: pass
+        self.ldap.refresh(path)
+        secrtn = self.security.refresh(path)
+        if secrtn != True: return secrtn
         self.repos = repos
         self.repomap = repomap
         self.path = path
-        self.ldap = ldap
         return True
-
-    def getldap(self, ldapxml):
-        tmpdata, ldap = {}, {}
-        for prop in ET.parse(ldapxml).getroot().iter():
-            tmpdata[prop.tag] = prop.text
-        proto, host = tmpdata['protocol'], tmpdata['host']
-        port, base = tmpdata['port'], tmpdata['searchBase']
-        url = proto + '://' + host
-        if (proto, port) not in (('ldap', '389'), ('ldaps', '636')):
-            url += ':' + port
-        url += '/' + base
-        ldap['ldapUrl'] = url
-        uoc = tmpdata['userObjectClass']
-        uid = tmpdata['userIdAttribute']
-        filt = '(&(objectClass=' + uoc + ')(' + uid + '={0})'
-        if 'ldapFilter' in tmpdata and len(tmpdata['ldapFilter']) > 0:
-            ufilt = tmpdata['ldapFilter']
-            if ufilt[0] != '(' or ufilt[-1] != ')':
-                ufilt = '(' + ufilt + ')'
-            filt += ufilt
-        filt += ')'
-        ldap['searchFilter'] = filt
-        ldap['emailAttribute'] = tmpdata['emailAddressAttribute']
-        if 'systemUsername' in tmpdata:
-            ldap['managerDn'] = tmpdata['systemUsername']
-        if 'userBaseDn' in tmpdata:
-            ldap['searchBase'] = tmpdata['userBaseDn']
-        if 'userSubtree' in tmpdata:
-            ldap['searchSubTree'] = tmpdata['userSubtree']
-        else: ldap['searchSubTree'] = 'false'
-        lgar = 'ldapGroupsAsRoles'
-        if lgar in tmpdata and tmpdata[lgar] == 'true':
-            gma = 'groupMemberAttribute'
-            umoa = 'userMemberOfAttribute'
-            goc = 'group'
-            if umoa in tmpdata:
-                ldap[gma] = tmpdata[umoa]
-                ldap['strategy'] = 'DYNAMIC'
-                ldap['groupNameAttribute'] = 'cn'
-            else:
-                ldap[gma] = tmpdata[gma]
-                ldap['strategy'] = 'STATIC'
-                ldap['groupNameAttribute'] = tmpdata['groupIdAttribute']
-                goc = tmpdata['groupObjectClass']
-            ldap['filter'] = '(objectClass=' + goc + ')'
-            if 'groupBaseDn' in tmpdata:
-                ldap['groupBaseDn'] = tmpdata['groupBaseDn']
-            if 'groupSubtree' in tmpdata:
-                ldap['subTree'] = tmpdata['groupSubtree']
-            else: ldap['subTree'] = 'false'
-        return ldap
 
     def getRepoClass(self, repo, repodata):
         ext = repo.find('externalConfiguration')

@@ -19,7 +19,8 @@ class Ldap(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
-        if self.scr.nexus.ldap != None and 'managerDn' in self.scr.nexus.ldap:
+        ldap = self.scr.nexus.ldap.ldap
+        if ldap != None and 'managerDn' in ldap:
             self.opts = self.manageropts + self.alwaysopts
         else: self.opts = self.alwaysopts
         self.updateparent()
@@ -29,9 +30,10 @@ class Ldap(Menu):
         self.parent['stat'] = self.status()
 
     def initialize(self):
-        if self.scr.nexus.ldap != None and 'managerDn' in self.scr.nexus.ldap:
+        ldap = self.scr.nexus.ldap.ldap
+        if ldap != None and 'managerDn' in ldap:
             self.opts = self.manageropts + self.alwaysopts
-            self.useropt['val'] = self.scr.nexus.ldap['managerDn']
+            self.useropt['val'] = ldap['managerDn']
         else: self.opts = self.alwaysopts
 
     def change(self, newval):

@@ -14,7 +14,8 @@ class Screen:
     def __init__(self, screen):
         self.msg = None
         self.screen = screen
-        self.modified = False
+        self.mainmenu = None
+        self.oldstate = None
         self.h, self.w = 22, 78
         self.nexus = Nexus()
         self.artifactory = Artifactory(self)
@@ -24,6 +25,9 @@ class Screen:
         unicurses.wborder(self.frame)
         self.win = unicurses.newwin(self.h, self.w, 0, 0)
         unicurses.keypad(self.win, 1)
+
+    def modified(self):
+        return self.mainmenu.collectconf() != self.oldstate
 
     # Initialize the text attributes which will be used by this tool. Most of
     # these will be bold and some color.

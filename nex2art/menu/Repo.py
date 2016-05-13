@@ -18,7 +18,7 @@ class Repo(Menu):
             opt = self.mkopt('INFO', "no connected Nexus instance", None)
             self.pagedopts = [opt]
         elif len(self.scr.nexus.repos) == 0:
-            opt = self.mkopt('INFO', "no availiable repositories", None)
+            opt = self.mkopt('INFO', "no available repositories", None)
             self.pagedopts = [opt]
         else:
             self.pagedopts = []
@@ -54,7 +54,7 @@ class Repo(Menu):
             if isinstance(self.optmap[k], RepoEdit):
                 conf[k] = self.optmap[k].collectconf()
             else: conf[k] = self.optmap[k]
-            conf[k]['available'] = conf[k]["Repo Name (Nexus)"] in repos
+            conf[k]['available'] = k in repos
         return conf
 
     def applyconf(self, conf):

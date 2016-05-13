@@ -37,13 +37,15 @@ class Menu:
     # - 'hdoc': documentation string to print when this option is selected by
     #   the contextual help system (or the value False if this option should
     #   instead exit the contextual help system)
-    def mkopt(self, key, text, act, val=None, verif=None, alt=None, hdoc=None):
+    def mkopt(self, key, text, act, val=None, verif=None, alt=None, save=True,
+              hdoc=None):
         if isinstance(hdoc, basestring):
             hdoc = self.scr.wrap.fill(' '.join(hdoc.split()))
         if not isinstance(act, list): act = [act]
         if not isinstance(alt, list): alt = [alt]
         return {'key': key, 'val': val, 'text': text, 'act': act, 'help': hdoc,
-                'alt': alt, 'stat': True, 'verif': verif, 'wait': False}
+                'alt': alt, 'stat': True, 'save': save, 'verif': verif,
+                'wait': False}
 
     # Verify all data in this menu. This function recursively calls verify() for
     # child menus as well. This is designed to behave as a full subtree refresh.
@@ -57,10 +59,10 @@ class Menu:
                 if hasattr(x, 'verify'):
                     act = x
                     break
-            if act != None:
-                opt['stat'] = act.verify()
-            elif opt['verif'] != None:
+            if opt['verif'] != None:
                 opt['stat'] = opt['verif'](opt['val'])
+            elif act != None:
+                opt['stat'] = act.verify()
             if opt['stat'] == False: status = False
         return status
 
@@ -79,6 +81,7 @@ class Menu:
         conf = {}
         for opt in self.pagedopts + self.opts:
             if opt == None: continue
+            if opt['save'] == False: continue
             act = None
             for x in opt['act'] + opt['alt']:
                 if hasattr(x, 'collectconf'):
@@ -89,7 +92,8 @@ class Menu:
                 if tmp != None and len(tmp) > 0:
                     conf[opt['text']] = tmp
                     continue
-            if opt['val'] != None: conf[opt['text']] = opt['val']
+            if opt['key'] != 'INFO' and opt['val'] != None:
+                conf[opt['text']] = opt['val']
         return conf
 
     # Given a simple dictionary tree of values 'conf', apply all values to the
@@ -98,7 +102,7 @@ class Menu:
     def applyconf(self, conf):
         for opt in self.pagedopts + self.opts:
             if opt == None: continue
-            opt['val'] = None
+            if opt['save'] and opt['key'] != 'INFO': opt['val'] = None
             act = None
             for x in opt['act'] + opt['alt']:
                 if hasattr(x, 'applyconf'):
@@ -164,9 +168,10 @@ class Menu:
                 unicurses.waddstr(self.scr.win, " ~", self.scr.attr['slp'])
             elif opt['val'] == True:
                 unicurses.waddstr(self.scr.win, " +", attr)
-            elif isinstance(opt['val'], basestring):
-                unicurses.waddstr(self.scr.win, " ")
+            elif isinstance(opt['val'], (basestring, list)):
+                if len(opt['text']) > 0: unicurses.waddstr(self.scr.win, " ")
                 value = opt['val']
+                if isinstance(value, list): value = ','.join(value)
                 if '*' in opt['act']: value = '*'*len(value)
                 self.dotstr(value, attr)
             if unicurses.getyx(self.scr.win)[1] > 0:
@@ -214,7 +219,6 @@ class Menu:
     # status is set accordingly.
     def runact(self, sel, acts):
         cont = True
-        oldval = sel['val']
         for act in acts:
             if act == None:
                 self.page = 1
@@ -229,8 +233,6 @@ class Menu:
             if cont == False: break
             elif sel['wait'] == True: sel['wait'] = False
         if sel['verif'] != None: sel['stat'] = sel['verif'](sel['val'])
-        if self.scr.modified == None: self.scr.modified = False
-        elif oldval != sel['val']: self.scr.modified = True
 
     # Display a child menu, and then set the option's status accordingly. The
     # parameter 'sel' is the selected option, and 'act' is the action in

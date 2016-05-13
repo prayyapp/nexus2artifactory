@@ -22,7 +22,7 @@ if __name__ == '__main__':
         scr.render()
         while True:
             win.show()
-            if not scr.modified or saf.show(): break
+            if not scr.modified() or saf.show(): break
     finally:
         if 'stdscr' in locals():
             unicurses.echo()
