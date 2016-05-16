@@ -93,6 +93,14 @@ class PermissionEdit(Menu):
     def status(self):
         return not self.migrate['val'] or Menu.status(self)
 
+    def collectconf(self):
+        conf = Menu.collectconf(self)
+        if isinstance(conf['Include Patterns'], dict):
+            conf['Include Patterns'] = conf['Include Patterns'].values()
+        if isinstance(conf['Exclude Patterns'], dict):
+            conf['Exclude Patterns'] = conf['Exclude Patterns'].values()
+        return conf
+
     def applyconf(self, conf):
         inc = conf['Include Patterns']
         exc = conf['Exclude Patterns']

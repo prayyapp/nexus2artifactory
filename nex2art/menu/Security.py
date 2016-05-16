@@ -34,3 +34,9 @@ class Security(Menu):
     def refresh(self, _=None):
         self.users['stat'] = self.users['act'][0].verify()
         self.scr.msg = None
+
+    def applyconf(self, conf):
+        if "LDAP Migration Setup" in conf:
+            self.ldapmenu['act'][0].applyconf(conf["LDAP Migration Setup"])
+            del conf["LDAP Migration Setup"]
+        Menu.applyconf(self, conf)

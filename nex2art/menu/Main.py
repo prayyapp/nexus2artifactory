@@ -33,6 +33,8 @@ class Main(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Exit", None, hdoc=False)]
+        self.verify()
+        self.scr.msg = None
         self.scr.oldstate = self.collectconf()
 
     # When setup runs, refresh the view, as there may be new statuses.
