@@ -8,12 +8,16 @@ class Security(Menu):
     def __init__(self, scr):
         Menu.__init__(self, scr, "Migrate Security")
         self.hasldap = None
-        self.users = self.mkopt('u', "Users", User(self.scr, self))
-        self.groups = self.mkopt('g', "Groups", [Group(self.scr), self.refresh])
+        self.users = self.mkopt('u', "Users",
+                                [User(self.scr, self), self.refresh])
+        self.groups = self.mkopt('g', "Groups",
+                                 [Group(self.scr, self), self.refresh])
+        self.perms = self.mkopt('p', "Permissions",
+                                [Permission(self.scr, self), self.refresh])
         self.opthead = [
             self.users,
             self.groups,
-            self.mkopt('p', "Permissions", Permission(self.scr))]
+            self.perms]
         self.opttail = [
             None,
             self.mkopt('h', "Help", '?'),
@@ -32,7 +36,7 @@ class Security(Menu):
         self.opts.extend(self.opttail)
 
     def refresh(self, _=None):
-        self.users['stat'] = self.users['act'][0].verify()
+        self.verify()
         self.scr.msg = None
 
     def applyconf(self, conf):

@@ -2,8 +2,9 @@ from ..core import Menu
 from . import GroupEdit
 
 class Group(Menu):
-    def __init__(self, scr):
+    def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate Groups")
+        self.parent = parent
         self.optmap = {}
         self.opts = [
             None,
@@ -28,13 +29,14 @@ class Group(Menu):
                     alt = self.optmap[group['groupName']]
                     if isinstance(alt, GroupEdit): alt.parent = opt
                     else:
-                        conf, alt = alt, GroupEdit(self.scr, opt, group)
+                        conf = alt
+                        alt = GroupEdit(self.scr, opt, group, self.parent)
                         self.optmap[group['groupName']] = alt
                         alt.applyconf(conf)
                     opt['alt'] = [alt]
                     alt.updateparent()
                 else:
-                    opt['alt'] = [GroupEdit(self.scr, opt, group)]
+                    opt['alt'] = [GroupEdit(self.scr, opt, group, self.parent)]
                     self.optmap[group['groupName']] = opt['alt'][0]
                     opt['stat'] = opt['alt'][0].verify()
                 opt['act'] = ['+', opt['alt'][0].updatemigrate]

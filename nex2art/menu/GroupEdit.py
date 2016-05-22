@@ -4,8 +4,9 @@ from . import PrivMethodEdit
 from . import ChooseList
 
 class GroupEdit(Menu):
-    def __init__(self, scr, parent, group):
+    def __init__(self, scr, parent, group, secmenu):
         Menu.__init__(self, scr, "Edit Group Options")
+        self.secmenu = secmenu
         self.parent = parent
         self.specprivs = []
         for priv in self.scr.nexus.security.allprivmap.values():
@@ -19,28 +20,24 @@ class GroupEdit(Menu):
                 self.specprivs.append({'name': name, 'specn': specn})
         self.migrate = self.mkopt('m', "Migrate This Group",
                                   ['+', self.updateparent], val=parent['val'])
-        pick = self.buildpermedit
-        create = self.makepermedit
-        perm = ItemListEdit(self.scr, None, "Permissions", pick, create, None)
+        perm = ItemListEdit(self.scr, None, "Permissions",
+                            self.buildpermedit, self.makepermedit, None)
         self.perms = self.mkopt('p', "Permissions", perm)
         self.perms['act'][0].parent = self.perms
         def nil(_): pass
         for priv in group['privileges']:
             opt = None
             if priv['type'] == 'view':
-                name = priv['id']
-                mthds = '(view)'
-                opt = self.mkopt(None, name, None, val=mthds, alt=perm.delitem)
-                opt['act'] = [nil]
+                opt = self.mkopt(None, priv['id'], nil, val='(view)',
+                                 alt=perm.delitem)
             elif priv['type'] == 'application':
-                name = priv['permission']
-                mthds = '(' + priv['method'] + ')'
-                opt = self.mkopt(None, name, None, val=mthds, alt=perm.delitem)
-                opt['act'] = [nil]
+                opt = self.mkopt(None, priv['permission'], nil,
+                                 val='(' + priv['method'] + ')',
+                                 alt=perm.delitem)
             elif priv['type'] == 'target':
-                name = priv['privilege']['name']
-                mthds = priv['methods']
-                opt = self.mkopt(None, name, None, val=mthds, alt=perm.delitem)
+                opt = self.mkopt(None, priv['privilege']['name'], None,
+                                 val=priv['methods'],
+                                 alt=perm.delitem, verif=self.checkdeps)
                 opt['act'] = [PrivMethodEdit(self.scr, opt)]
             perm.pagedopts.append(opt)
         self.opts = [
@@ -67,7 +64,8 @@ class GroupEdit(Menu):
             if pickpriv.choice == None: return False
             if 'specn' in pickpriv.choice: methodedit.skip = True
             for perm in self.perms['act'][0].pagedopts:
-                vals = perm['text'], perm['text'] + ' ' + perm['val']
+                if perm['val'] == None: vals = perm['text'],
+                else: vals = perm['text'], perm['text'] + ' ' + perm['val']
                 if pickpriv.choice['name'] in vals:
                     msg = "This group already has that permission"
                     self.scr.msg = ('err', msg)
@@ -89,7 +87,8 @@ class GroupEdit(Menu):
             name, val = priv['specn']
             opt = self.mkopt(None, name, nil, val=val, alt=alt)
         else:
-            opt = self.mkopt(None, priv['name'], None, val=methods, alt=alt)
+            opt = self.mkopt(None, priv['name'], None, val=methods, alt=alt,
+                             verif=self.checkdeps)
             opt['act'] = [PrivMethodEdit(self.scr, opt)]
         return opt
 
@@ -120,6 +119,16 @@ class GroupEdit(Menu):
                                 "Group name must not contain /\\:|?*\"<>")
                 return False
         return True
+
+    def checkdeps(self, _=None):
+        conf = self.secmenu.perms['act'][0].collectconf()
+        dperms = []
+        for permn, perm in conf.items():
+            if perm["Migrate This Permission"] == False:
+                dperms.append(permn)
+        for perm in self.perms['act'][0].pagedopts:
+            perm['stat'] = perm['text'] not in dperms
+        return None
 
     def verify(self):
         verif = Menu.verify(self)

@@ -21,9 +21,10 @@ class UserEdit(Menu):
         grp = ItemListEdit(self.scr, None, "Groups", pick, create, None)
         self.groups = self.mkopt('g', "Groups", grp, verif=self.chprivs)
         self.groups['act'][0].parent = self.groups
-        def f(_): pass
+        def nil(_): pass
         for group in user['roles']:
-            opt = self.mkopt(None, group['groupName'], f, alt=grp.delitem)
+            opt = self.mkopt(None, group['groupName'], nil, alt=grp.delitem,
+                             verif=self.checkdeps)
             grp.pagedopts.append(opt)
         if len(grp.pagedopts) <= 0:
             opt = self.mkopt('INFO', "no items in list", None)
@@ -49,21 +50,22 @@ class UserEdit(Menu):
         tform = lambda x: x['groupName']
         groupslist = self.scr.nexus.security.allroles.values()
         pickgroup = ChooseList(self.scr, "Group", tform, groupslist)
-        def f(_):
+        def nil(_):
             if pickgroup.choice == None: return False
             itemlist.tmpval = pickgroup.choice
             pickgroup.choice = None
-        return [pickgroup, f]
+        return [pickgroup, nil]
 
     def makegroupedit(self, _, itemlist):
-        def f(_): pass
+        def nil(_): pass
         grp, itemlist.tmpval = itemlist.tmpval, None
         for group in self.groups['act'][0].pagedopts:
             if group['text'] == grp['groupName']:
                 msg = "This user already belongs to that group"
                 self.scr.msg = ('err', msg)
                 return False
-        return self.mkopt(None, grp['groupName'], f, alt=itemlist.delitem)
+        return self.mkopt(None, grp['groupName'], nil, alt=itemlist.delitem,
+                          verif=self.checkdeps)
 
     def updatemigrate(self, _=None):
         self.migrate['val'] = self.parent['val']
@@ -99,7 +101,8 @@ class UserEdit(Menu):
 
     def chprivs(self, _=None):
         self.scanforadminprivs()
-        if len(self.adminprivs) == 0 or self.isadmin['val'] == True: return True
+        if len(self.adminprivs) == 0 or self.isadmin['val'] == True:
+            return self.groups['act'][0].verify()
         priv = "permission '" + self.adminprivs[0] + "'."
         self.scr.msg = ('err', "Non-admin user may not have " + priv)
         return False
@@ -134,13 +137,24 @@ class UserEdit(Menu):
         Menu.applyconf(self, conf)
         grp = self.groups['act'][0]
         grp.pagedopts = []
-        def f(_): pass
+        def nil(_): pass
         for group in groups:
-            opt = self.mkopt(None, group, f, alt=grp.delitem)
+            opt = self.mkopt(None, group, nil, alt=grp.delitem,
+                             verif=self.checkdeps)
             grp.pagedopts.append(opt)
         if len(grp.pagedopts) <= 0:
             opt = self.mkopt('INFO', "no items in list", None)
             grp.pagedopts = [opt]
+
+    def checkdeps(self, _=None):
+        conf = self.secmenu.groups['act'][0].collectconf()
+        dgroups = []
+        for groupn, group in conf.items():
+            if group["Migrate This Group"] == False:
+                dgroups.append(groupn)
+        for group in self.groups['act'][0].pagedopts:
+            group['stat'] = group['text'] not in dgroups
+        return None
 
     def scanforadminprivs(self):
         privs = {}

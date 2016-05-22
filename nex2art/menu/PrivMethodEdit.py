@@ -45,3 +45,7 @@ class PrivMethodEdit(Menu):
         self.delete['val'] = val != None and 'd' in val
         self.annotate['val'] = val != None and 'n' in val
         self.manage['val'] = val != None and 'm' in val
+
+    def applyconf(self, conf):
+        Menu.applyconf(self, conf)
+        self.updateparent()

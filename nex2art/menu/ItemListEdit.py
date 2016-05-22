@@ -48,6 +48,9 @@ class ItemListEdit(Menu):
         if len(self.pagedopts) == 1 and self.pagedopts[0]['key'] == 'INFO':
             self.pagedopts = [opt]
         else: self.pagedopts.append(opt)
+        if opt['verif'] != None:
+            stat = opt['verif'](opt['val'])
+            if stat != None: opt['stat'] = stat
         self.updateparent()
 
     def delitem(self, opt):

@@ -3,8 +3,9 @@ from . import ItemListEdit
 from . import ChooseList
 
 class PermissionEdit(Menu):
-    def __init__(self, scr, parent, priv):
+    def __init__(self, scr, parent, priv, secmenu):
         Menu.__init__(self, scr, "Edit Permission Options")
+        self.secmenu = secmenu
         self.parent = parent
         targ = priv['target']
         rxpat = ItemListEdit(self.scr, None, "Nexus Pattern", None,
