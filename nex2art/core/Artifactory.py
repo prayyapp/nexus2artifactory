@@ -49,15 +49,19 @@ class Artifactory:
         except MigrationError as ex: return ex.value
 
     def enablePasswordExpire(self, root, ns):
-        exp = None
-        for pol in root.iter(ns + 'expirationPolicy'): exp = pol
+        exp, itr = None, None
+        try: itr = root.iter(ns + 'expirationPolicy')
+        except AttributeError: itr = root.getiterator(ns + 'expirationPolicy')
+        for pol in itr: exp = pol
         enabled = exp.find(ns + 'enabled')
         cfg, enabled.text = enabled.text, 'true'
         return cfg
 
     def disablePasswordExpire(self, root, ns, cfg):
-        exp = None
-        for pol in root.iter(ns + 'expirationPolicy'): exp = pol
+        exp, itr = None, None
+        try: itr = root.iter(ns + 'expirationPolicy')
+        except AttributeError: itr = root.getiterator(ns + 'expirationPolicy')
+        for pol in itr: exp = pol
         enabled = exp.find(ns + 'enabled')
         enabled.text = cfg
 
@@ -216,8 +220,11 @@ class Artifactory:
         src = conf["Security Migration Setup"]["LDAP Migration Setup"]
         if src["Migrate LDAP"] == False: return
         data = self.scr.nexus.ldap.ldap
+        itr = None
         ldap = self.buildldap(ns)
-        for item in ldap.iter():
+        try: itr = ldap.iter()
+        except AttributeError: itr = ldap.getiterator()
+        for item in itr:
             tag = item.tag[len(ns):] if item.tag.startswith(ns) else item.tag
             if tag == 'key': item.text = src["LDAP Setting Name"]
             elif tag == 'name': item.text = src["LDAP Group Name"]

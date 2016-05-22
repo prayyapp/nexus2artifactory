@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 import os
 import unicurses
 from nex2art.menu import Safety, Main

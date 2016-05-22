@@ -16,7 +16,11 @@ class Ldap:
 
     def getldap(self, ldapxml):
         tmpdata, ldap = {}, {}
-        for prop in ET.parse(ldapxml).getroot().iter():
+        root = ET.parse(ldapxml).getroot()
+        itr = None
+        try: itr = root.iter()
+        except AttributeError: itr = root.getiterator()
+        for prop in itr:
             tmpdata[prop.tag] = prop.text
         proto, host = tmpdata['protocol'], tmpdata['host']
         port, base = tmpdata['port'], tmpdata['searchBase']
