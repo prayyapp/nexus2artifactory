@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import json
 import base64
 import httplib
@@ -116,7 +117,11 @@ class Artifactory:
             cmd.append(str(src["Repo Name (Artifactory)"] + '/'))
             with open(os.devnull, 'w') as f:
                 try: subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
-                except OSError as ex: raise MigrationError(str(ex))
+                except OSError:
+                    try:
+                        cmd[0] = os.path.join(sys._MEIPASS, 'jfrog.exe')
+                        subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
+                    except OSError as ex: raise MigrationError(str(ex))
 
     def migrateusers(self, conn, conf):
         defaultpasw = conf['Users']["Default Password"]
