@@ -125,6 +125,7 @@ class Artifactory:
         result = self.dorequest(conn, 'GET', cfg)
         usrs = {}
         for res in result: usrs[res['name']] = True
+        if 'Users' not in conf: return
         for usern, user in conf['Users'].items():
             if not isinstance(user, dict): continue
             if user['available'] != True: continue
@@ -154,6 +155,7 @@ class Artifactory:
         result = self.dorequest(conn, 'GET', cfg)
         grps = {}
         for res in result: grps[res['name']] = True
+        if 'Groups' not in conf: return
         for grpn, grp in conf['Groups'].items():
             if grp['available'] != True: continue
             if grp["Migrate This Group"] != True: continue
@@ -169,8 +171,10 @@ class Artifactory:
         cfg = 'api/security/permissions'
         result = self.dorequest(conn, 'GET', cfg)
         grpdata = {}
+        if 'Groups' not in conf: conf['Groups'] = {}
         for grpn, grp in conf['Groups'].items():
             grpname = grp["Group Name (Artifactory)"]
+            if 'Permissions' not in grp: continue
             for permn, perm in grp['Permissions'].items():
                 if isinstance(perm, basestring): continue
                 perms = []
@@ -182,6 +186,7 @@ class Artifactory:
                 if permn in grpdata: grpdata[permn][grpname] = perms
                 else: grpdata[permn] = {grpname: perms}
         privs = self.scr.nexus.security.privs
+        if 'Permissions' not in conf: return
         for permn, perm in conf['Permissions'].items():
             if perm['available'] != True: continue
             if perm["Migrate This Permission"] != True: continue
