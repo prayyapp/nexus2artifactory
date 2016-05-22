@@ -60,9 +60,11 @@ class Menu:
                     act = x
                     break
             if opt['verif'] != None:
-                opt['stat'] = opt['verif'](opt['val'])
+                stat = opt['verif'](opt['val'])
+                if stat != None: opt['stat'] = stat
             elif act != None:
-                opt['stat'] = act.verify()
+                stat = act.verify()
+                if stat != None: opt['stat'] = stat
             if opt['stat'] == False: status = False
         return status
 
@@ -232,15 +234,21 @@ class Menu:
             elif act == '*': cont = self.showLineEdit(sel, True)
             if cont == False: break
             elif sel['wait'] == True: sel['wait'] = False
-        if sel['verif'] != None: sel['stat'] = sel['verif'](sel['val'])
+        if sel['verif'] != None:
+            stat = sel['verif'](sel['val'])
+            if stat != None: sel['stat'] = stat
 
     # Display a child menu, and then set the option's status accordingly. The
     # parameter 'sel' is the selected option, and 'act' is the action in
     # question.
     def showMenu(self, sel, act):
         act.show()
-        if sel['verif'] != None: sel['stat'] = sel['verif'](sel['val'])
-        else: sel['stat'] = act.status()
+        if sel['verif'] != None:
+            stat = sel['verif'](sel['val'])
+            if stat != None: sel['stat'] = stat
+        else:
+            stat = act.status()
+            if stat != None: sel['stat'] = stat
 
     # Run the action, which is an arbitrary function. While the action is
     # running, display a tilde next to the option to show that it's busy. The
