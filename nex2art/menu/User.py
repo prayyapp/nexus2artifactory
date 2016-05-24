@@ -5,7 +5,7 @@ class User(Menu):
     def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate Users")
         self.parent = parent
-        self.pasw = self.mkopt('p', "Default Password", '|', val='password',
+        self.pasw = self.mkopt('p', "Default Password", '|',
                                verif=self.chdefpasw)
         self.optmap = {}
         self.opts = [
