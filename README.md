@@ -177,7 +177,7 @@ handful of reasons that an initial configuration might not be valid:
   categories:
   - The privilege allows access to something that doesn't exist in Artifactory.
   - The privilege allows access that all Artifactory users already have.
-  - The privilege allows access that only Artifactory admins have.
+  - The privilege allows access that only Artifactory admins have.  
   The former two types are ignored. If a user has the third type of privilege,
   they must also be marked as an administrator.
 
