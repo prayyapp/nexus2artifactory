@@ -21,6 +21,7 @@ class Nexus:
         self.security.initialize()
         if path == None: return True
         path = os.path.abspath(path)
+        caps = self.getYumCapabilities(path)
         config = os.path.join(path, 'conf', 'nexus.xml')
         if not os.path.isfile(config):
             return "Given path is not a valid Nexus instance."
@@ -31,7 +32,9 @@ class Nexus:
                 repodata = {}
                 repodata['id'] = repo.find('id').text
                 repodata['desc'] = repo.find('name').text
-                repodata['type'], repodata['layout'] = self.getPackType(repo)
+                typ, layout = self.getPackType(caps, repo)
+                repodata['type'] = typ
+                repodata['layout'] = layout
                 self.getRepoClass(repo, repodata)
                 ext = repo.find('externalConfiguration')
                 policy = None
@@ -78,7 +81,8 @@ class Nexus:
         elif master != None: repodata['class'] = 'shadow'
         else: repodata['class'] = 'local'
 
-    def getPackType(self, repo):
+    def getPackType(self, caps, repo):
+        if repo.find('id').text in caps: return 'yum', 'simple-default'
         rtypes = ['maven1', 'maven2', 'npm', 'nuget', 'gems']
         ltypes = ['bower', 'gradle', 'ivy', 'npm', 'nuget', 'sbt', 'vcs']
         hint = repo.find('providerHint').text
@@ -95,3 +99,19 @@ class Nexus:
         elif hint == 'maven1': hint, layout = 'maven', 'maven-1'
         elif hint == 'maven2': hint, layout = 'maven', 'maven-2'
         return hint, layout + '-default'
+
+    def getYumCapabilities(self, path):
+        xml = os.path.join(path, 'conf', 'capabilities.xml')
+        if not os.path.isfile(xml): return []
+        yumrepos = []
+        root = ET.parse(xml).getroot()
+        for cap in root.find('capabilities').findall('capability'):
+            tid = cap.find('typeId').text
+            # TODO add 'yum.merge' to this list when Artifactory starts
+            # supporting virtual Yum repositories
+            if tid not in ('yum.generate', 'yum.proxy'): continue
+            props = {}
+            for prop in cap.find('properties').findall('property'):
+                props[prop.find('key').text] = prop.find('value').text
+            yumrepos.append(props['repository'])
+        return yumrepos
