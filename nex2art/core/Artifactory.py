@@ -3,10 +3,25 @@ import re
 import sys
 import json
 import base64
-import httplib
+import urllib2
+import urlparse
 import StringIO
 import subprocess
 import xml.etree.ElementTree as ET
+
+class MethodRequest(urllib2.Request):
+    def __init__(self, *args, **kwargs):
+        if 'method' in kwargs:
+            self._method = kwargs['method']
+            del kwargs['method']
+        else:
+            self._method = None
+        return urllib2.Request.__init__(self, *args, **kwargs)
+
+    def get_method(self, *args, **kwargs):
+        if self._method is not None:
+            return self._method
+        return urllib2.Request.get_method(self, *args, **kwargs)
 
 class MigrationError(Exception):
     def __init__(self, value):
@@ -273,13 +288,10 @@ class Artifactory:
         headers = {'User-Agent': 'nex2art'}
         enc = base64.b64encode(self.user + ':' + self.pasw)
         headers['Authorization'] = "Basic " + enc
-        builder = None
-        if self.url[0] == 'https': builder = httplib.HTTPSConnection
-        elif self.url[0] == 'http': builder = httplib.HTTPConnection
-        return builder, self.url[1], self.url[2], headers
+        return self.url[0], self.url[1], self.url[2], headers
 
     def dorequest(self, conndata, method, path, body=None):
-        stat, msg, ctype = None, None, None
+        resp, stat, msg, ctype = None, None, None, None
         headers = {}
         if isinstance(body, (dict, list, tuple)):
             body = json.dumps(body)
@@ -290,22 +302,22 @@ class Artifactory:
             body = fobj.getvalue()
             fobj.close()
             headers['Content-Type'] = 'application/xml'
-        builder, host, rootpath, extraheaders = conndata
+        scheme, host, rootpath, extraheaders = conndata
         headers.update(extraheaders)
-        conn = builder(host)
-        conn.request(method, rootpath + path, body, headers)
-        resp = conn.getresponse()
-        stat, msg = resp.status, resp.read()
-        ctype = resp.getheader('Content-Type', 'application/octet-stream')
-        conn.close()
-        if stat < 200 or stat >= 300:
+        url = urlparse.urlunsplit((scheme, host, rootpath + path, '', ''))
+        req = MethodRequest(url, body, headers, method=method)
+        try:
+            resp = urllib2.urlopen(req)
+            stat = resp.getcode()
+            ctype = resp.info().get('Content-Type', 'application/octet-stream')
+        except urllib2.HTTPError as ex: stat = ex.code
+        except urllib2.URLError as ex: stat = ex.reason
+        if not isinstance(stat, (int, long)) or stat < 200 or stat >= 300:
             msg = "Unable to " + method + " " + path + ": " + str(stat) + "."
             raise MigrationError(msg)
         try:
-            if self.json.match(ctype) != None: msg = json.loads(msg)
-            elif self.xml.match(ctype) != None:
-                fobj = StringIO.StringIO(msg)
-                msg = ET.parse(fobj)
-                fobj.close()
+            if self.json.match(ctype) != None: msg = json.load(resp)
+            elif self.xml.match(ctype) != None: msg = ET.parse(resp)
+            else: msg = resp.read()
         except: pass
         return msg

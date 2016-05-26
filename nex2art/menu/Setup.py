@@ -1,6 +1,6 @@
-import urlparse
-import httplib
 import base64
+import urllib2
+import urlparse
 from ..core import Menu
 
 class Setup(Menu):
@@ -49,13 +49,13 @@ class Setup(Menu):
             headers['Authorization'] = "Basic " + enc
         if url != None:
             path = url[2] + 'api/system/ping'
+            nurl = urlparse.urlunsplit((url[0], url[1], path, '', ''))
             try:
-                if url[0] == 'https': conn = httplib.HTTPSConnection(url[1])
-                else: conn = httplib.HTTPConnection(url[1])
-                conn.request('GET', path, headers=headers)
-                stat = conn.getresponse().status
-                conn.close()
-            except: stat = False
+                req = urllib2.Request(nurl, None, headers)
+                resp = urllib2.urlopen(req)
+                stat = resp.getcode()
+            except urllib2.HTTPError as ex: stat = ex.code
+            except urllib2.URLError as ex: stat = ex.reason
         self.urlopt['stat'] = self.urlopt['val'] == None
         self.useropt['stat'] = self.useropt['val'] == None
         self.paswopt['stat'] = self.paswopt['val'] == None
