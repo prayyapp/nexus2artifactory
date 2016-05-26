@@ -164,6 +164,7 @@ class UserEdit(Menu):
             grpn = grp['text']
             if grpn in cgroups:
                 grpc = cgroups[grpn]
+                if 'Permissions' not in grpc: continue
                 for permn, perm in grpc['Permissions'].items():
                     privs[permn] = perm
             elif grpn in bgroups:

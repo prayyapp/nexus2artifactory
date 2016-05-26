@@ -64,6 +64,7 @@ class Main(Menu):
     # a file. The parameter 'sel' is the menu option that ran this function.
     def save(self, sel):
         if sel['val'] == None: return
+        self.verify()
         f = None
         try:
             f = open(sel['val'], 'w')

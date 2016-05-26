@@ -136,3 +136,25 @@ class GroupEdit(Menu):
 
     def status(self):
         return not self.migrate['val'] or Menu.status(self)
+
+    def collectconf(self):
+        conf = Menu.collectconf(self)
+        conf['Permissions'] = {}
+        for perm in self.perms['act'][0].pagedopts:
+            if perm['key'] == 'INFO': continue
+            conf['Permissions'][perm['text']] = perm['val']
+        return conf
+
+    def applyconf(self, conf):
+        perms = {}
+        if 'Permissions' in conf:
+            perms = conf['Permissions']
+            del conf['Permissions']
+        Menu.applyconf(self, conf)
+        permopts = []
+        for perm in self.perms['act'][0].pagedopts:
+            if perm['key'] == 'INFO': permopts.append(perm)
+            elif perm['text'] in perms:
+                perm['val'] = perms[perm['text']]
+                permopts.append(perm)
+        self.perms['act'][0].pagedopts = permopts

@@ -185,13 +185,7 @@ class Artifactory:
             grpname = grp["Group Name (Artifactory)"]
             if 'Permissions' not in grp: continue
             for permn, perm in grp['Permissions'].items():
-                if isinstance(perm, basestring): continue
-                perms = []
-                if perm["Read Permissions"]: perms.append('r')
-                if perm["Create Permissions"]: perms.append('w')
-                if perm["Delete Permissions"]: perms.append('d')
-                if perm["Annotate Permissions"]: perms.append('n')
-                if perm["Manage Permissions"]: perms.append('m')
+                perms = list(perm)
                 if permn in grpdata: grpdata[permn][grpname] = perms
                 else: grpdata[permn] = {grpname: perms}
         privs = self.scr.nexus.security.privs
@@ -204,7 +198,7 @@ class Artifactory:
             excpat = ','.join(perm["Exclude Patterns"])
             repo = privs[name]['repo']
             if repo == '*': repo = 'ANY'
-            grps = grpdata[name]
+            grps = grpdata[name] if name in grpdata else {}
             jsn = {}
             jsn['name'] = name
             jsn['includesPattern'] = incpat
