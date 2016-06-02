@@ -26,11 +26,9 @@ instance is installed on.
 
 First, install the dependencies:
 - the latest version of [Python 2][]
-- the latest version of the [JFrog CLI][]
 - the latest version of [PDCurses][] (on Windows only)
 
 [Python 2]:  https://www.python.org/downloads/
-[JFrog CLI]: https://www.jfrog.com/getcli/
 [PDCurses]:  http://pdcurses.sourceforge.net/
 
 Then, clone this repository.
@@ -203,7 +201,6 @@ in development, and should be added to the tool soon:
 - support paid Nexus features, such as custom metadata
 - modify virtual repository child lists
 - modify repository package types
-- remove the dependency on the JFrog CLI
 - obfuscate passwords in save files
 - add help pages to all commands
 - add a proper migration progress screen

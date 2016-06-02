@@ -8,19 +8,18 @@ import urlparse
 import StringIO
 import subprocess
 import xml.etree.ElementTree as ET
+from . import Upload
 
 class MethodRequest(urllib2.Request):
     def __init__(self, *args, **kwargs):
         if 'method' in kwargs:
             self._method = kwargs['method']
             del kwargs['method']
-        else:
-            self._method = None
-        return urllib2.Request.__init__(self, *args, **kwargs)
+        else: self._method = None
+        urllib2.Request.__init__(self, *args, **kwargs)
 
     def get_method(self, *args, **kwargs):
-        if self._method is not None:
-            return self._method
+        if self._method is not None: return self._method
         return urllib2.Request.get_method(self, *args, **kwargs)
 
 class MigrationError(Exception):
@@ -30,6 +29,7 @@ class MigrationError(Exception):
 class Artifactory:
     def __init__(self, scr):
         self.scr = scr
+        self.upload = Upload(scr, self)
         self.json = re.compile(r'^application/(?:[^;]+\+)?json(?:;.+)?$')
         self.xml = re.compile(r'^application/(?:[^;]+\+)?xml(?:;.+)?$')
         self.url = None
@@ -59,7 +59,7 @@ class Artifactory:
             self.migrateldap(conf, root, ns)
             self.disablePasswordExpire(root, ns, pexpire)
             self.dorequest(conn, 'POST', cfg, artxml)
-            self.migrateartifacts(conf)
+            self.upload.upload(conf)
             return True
         except MigrationError as ex: return ex.value
 
@@ -109,38 +109,6 @@ class Artifactory:
             mthd = 'POST' if jsn['key'] in repos else 'PUT'
             cfg = 'api/repositories/' + jsn['key']
             self.dorequest(conn, mthd, cfg, jsn)
-
-    def migrateartifacts(self, conf):
-        nrepos = {}
-        for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
-        storage = os.path.join(self.scr.nexus.path, 'storage')
-        url = self.url[0] + '://' + self.url[1] + self.url[2]
-        for name, src in conf["Repository Migration Setup"].items():
-            if src['available'] != True: continue
-            if src["Migrate This Repo"] != True: continue
-            if nrepos[name]['class'] != 'local': continue
-            path = None
-            repomap = self.scr.nexus.repomap
-            if repomap and name in repomap and 'localurl' in repomap[name]:
-                path = repomap[name]['localurl']
-                path = re.sub('^file:/(.):/', '\\1:/', path)
-                path = re.sub('^file:/', '/', path)
-                path = os.path.abspath(path)
-            else: path = os.path.join(storage, name)
-            if not os.path.isdir(path): continue
-            cmd = ['jfrog', 'rt', 'upload', '--flat=false', '--regexp=true']
-            cmd.append('--user=' + str(self.user))
-            cmd.append('--password=' + str(self.pasw))
-            cmd.append('--url=' + str(url))
-            cmd.append(str('(^[^.].*' + re.escape(os.path.sep) + ')'))
-            cmd.append(str(src["Repo Name (Artifactory)"] + '/'))
-            with open(os.devnull, 'w') as f:
-                try: subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
-                except OSError:
-                    try:
-                        cmd[0] = os.path.join(sys._MEIPASS, 'jfrog.exe')
-                        subprocess.call(cmd, cwd=path, stdout=f, stderr=f)
-                    except OSError as ex: raise MigrationError(str(ex))
 
     def migrateusers(self, conn, conf):
         defaultpasw = conf['Users']["Default Password"]
