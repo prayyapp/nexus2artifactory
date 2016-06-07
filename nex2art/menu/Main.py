@@ -1,6 +1,6 @@
 import json
 import copy
-from ..core import Menu
+from ..core import Menu, Progress
 from . import Setup, Repo, Security, Options, Safety
 
 # The main menu. This is the first menu that appears when the tool is started,
@@ -56,7 +56,7 @@ class Main(Menu):
         if not self.verify():
             self.scr.msg = ('err', "Cannot run migration, errors found.")
             return
-        status = self.scr.artifactory.migrate(self.collectconf())
+        status = Progress(self.scr).show(self.collectconf())
         if status == True: self.scr.msg = ('val', "Migration successful!")
         else: self.scr.msg = ('err', "Migration error: " + status)
 

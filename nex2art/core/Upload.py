@@ -18,6 +18,7 @@ class Upload:
     def __init__(self, scr, parent):
         self.scr = scr
         self.parent = parent
+        self.filelock = threading.RLock()
         self.threadct = 4
         self.ts = 0
 
@@ -35,6 +36,7 @@ class Upload:
         for _ in xrange(self.threadct): queue.put(None)
         for t in threads: t.join()
         self.ts = newts
+        self.parent.prog.stepsmap['Artifacts'][1] = 1
 
     def getconndata(self):
         urlp = self.parent.url
@@ -85,7 +87,9 @@ class Upload:
             path, metapath, repo = item
             js, stat = None, None
             with open(metapath, 'r') as meta: js = json.load(meta)
-            if int(js['storageItem-modified']) < self.ts: continue
+            if int(js['storageItem-modified']) < self.ts:
+                self.incFileCount(repo + ':' + js['storageItem-path'])
+                continue
             puturl = url + repo + js['storageItem-path']
             chksumheaders = {'X-Checksum-Deploy': 'true'}
             chksumheaders['X-Checksum-Sha1'] = js['digest.sha1']
@@ -97,12 +101,13 @@ class Upload:
             except urllib2.URLError as ex: stat = ex.reason
             if stat == 404: stat = self.deployArtifact(puturl, path, headers)
             if not isinstance(stat, (int, long)) or stat < 200 or stat >= 300:
-                self.scr.msg = ('err', "Artifact migration error: " + str(stat))
+                self.incFileCount(repo + ':' + js['storageItem-path'], True)
             else:
                 for ext in '.sha1', '.md5':
                     hpath = path + ext
                     if not os.path.isfile(hpath): continue
                     self.deployArtifact(puturl + ext, hpath, headers)
+                self.incFileCount(repo + ':' + js['storageItem-path'])
 
     def deployArtifact(self, url, path, headers):
         stat = None
@@ -115,3 +120,10 @@ class Upload:
             except urllib2.HTTPError as ex: stat = ex.code
             except urllib2.URLError as ex: stat = ex.reason
         return stat
+
+    def incFileCount(self, fname, error=False):
+        with self.filelock:
+            self.parent.prog.currentartifact = fname
+            self.parent.prog.stepsmap['Artifacts'][4] += 1
+            if error: self.parent.prog.stepsmap['Artifacts'][3] += 1
+            self.parent.prog.refresh()

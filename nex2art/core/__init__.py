@@ -6,4 +6,5 @@ from .Nexus import Nexus
 from .Upload import Upload
 from .Artifactory import Artifactory
 from .Screen import Screen
+from .Progress import Progress
 from .Menu import Menu

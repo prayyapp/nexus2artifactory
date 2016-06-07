@@ -36,12 +36,16 @@ class Screen:
         unicurses.init_pair(2, unicurses.COLOR_GREEN, unicurses.COLOR_BLACK)
         unicurses.init_pair(3, unicurses.COLOR_CYAN, unicurses.COLOR_BLACK)
         unicurses.init_pair(4, unicurses.COLOR_RED, unicurses.COLOR_BLACK)
+        unicurses.init_pair(5, unicurses.COLOR_WHITE, unicurses.COLOR_CYAN)
+        unicurses.init_pair(6, unicurses.COLOR_WHITE, unicurses.COLOR_BLUE)
         self.attr = {}
         self.attr['ttl'] = unicurses.A_BOLD
         self.attr['key'] = unicurses.A_BOLD | unicurses.color_pair(1)
         self.attr['val'] = unicurses.A_BOLD | unicurses.color_pair(2)
         self.attr['slp'] = unicurses.A_BOLD | unicurses.color_pair(3)
         self.attr['err'] = unicurses.A_BOLD | unicurses.color_pair(4)
+        self.attr['pfg'] = unicurses.A_BOLD | unicurses.color_pair(5)
+        self.attr['pbg'] = unicurses.A_BOLD | unicurses.color_pair(6)
 
     # A wrapper for window.getch(). The parameter 'win' is the window to getch
     # from. See the render() function for details on the parameter 'etc'. This

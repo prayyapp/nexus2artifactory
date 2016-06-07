@@ -36,11 +36,14 @@ class Artifactory:
         self.user = None
         self.pasw = None
 
-    def migrate(self, conf):
+    def migrate(self, prog, conf):
         try:
             if None in (self.url, self.user, self.pasw):
                 msg = "Connection to Artifactory server not configured."
                 raise MigrationError(msg)
+            self.prog = prog
+            secconf = conf["Security Migration Setup"]
+            self.initprogress(conf, secconf)
             cfg = "api/system/configuration"
             conn = self.setupconn()
             artxml = self.dorequest(conn, 'GET', cfg)
@@ -48,7 +51,7 @@ class Artifactory:
             ns = root.tag[:root.tag.index('}') + 1]
             pexpire = self.enablePasswordExpire(root, ns)
             self.dorequest(conn, 'POST', cfg, artxml)
-            secconf = conf["Security Migration Setup"]
+            self.prog.refresh()
             self.migraterepos(conn, conf)
             self.migrategroups(conn, secconf)
             self.migrateusers(conn, secconf)
@@ -80,6 +83,39 @@ class Artifactory:
         enabled = exp.find(ns + 'enabled')
         enabled.text = cfg
 
+    def initprogress(self, conf, secconf):
+        repoct, grpct, usrct, permct, confct = 0, 0, 0, 0, 0
+        for repn, rep in conf["Repository Migration Setup"].items():
+            if rep['available'] != True: continue
+            if rep["Migrate This Repo"] != True: continue
+            repoct += 1
+        for grpn, grp in secconf['Groups'].items():
+            if grp['available'] != True: continue
+            if grp["Migrate This Group"] != True: continue
+            grpct += 1
+        for usern, user in secconf['Users'].items():
+            if not isinstance(user, dict): continue
+            if user['available'] != True: continue
+            if user["Migrate This User"] != True: continue
+            usrct += 1
+        for permn, perm in secconf['Permissions'].items():
+            if perm['available'] != True: continue
+            if perm["Migrate This Permission"] != True: continue
+            permct += 1
+        ldapq = True
+        if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
+            ldapq = False
+        src = conf["Security Migration Setup"]["LDAP Migration Setup"]
+        if src["Migrate LDAP"] == False: ldapq = False
+        if ldapq: confct += 1
+        self.prog.stepsmap['Repositories'][2] = repoct
+        self.prog.stepsmap['Groups'][2] = grpct
+        self.prog.stepsmap['Users'][2] = usrct
+        self.prog.stepsmap['Permissions'][2] = permct
+        self.prog.stepsmap['Configurations'][2] = confct
+        self.prog.stepsmap['Artifacts'][2] = 1
+        self.prog.refresh()
+
     def migraterepos(self, conn, conf):
         cfg = 'api/repositories'
         result = self.dorequest(conn, 'GET', cfg)
@@ -90,25 +126,30 @@ class Artifactory:
         for repn, rep in conf["Repository Migration Setup"].items():
             if rep['available'] != True: continue
             if rep["Migrate This Repo"] != True: continue
-            nrepo = nrepos[repn]
-            jsn = {}
-            jsn['key'] = rep["Repo Name (Artifactory)"]
-            jsn['rclass'] = nrepo['class']
-            jsn['packageType'] = nrepo['type']
-            jsn['description'] = rep["Description"]
-            jsn['repoLayoutRef'] = rep["Repo Layout"]
-            if jsn['rclass'] == 'local':
-                jsn['handleReleases'] = rep["Handles Releases"]
-                jsn['handleSnapshots'] = rep["Handles Snapshots"]
-            if jsn['rclass'] == 'remote':
-                jsn['handleReleases'] = rep["Handles Releases"]
-                jsn['handleSnapshots'] = rep["Handles Snapshots"]
-                jsn['url'] = rep["Remote URL"]
-            if jsn['rclass'] == 'virtual':
-                jsn['repositories'] = nrepo['repos']
-            mthd = 'POST' if jsn['key'] in repos else 'PUT'
-            cfg = 'api/repositories/' + jsn['key']
-            self.dorequest(conn, mthd, cfg, jsn)
+            self.prog.current = repn + ' -> ' + rep["Repo Name (Artifactory)"]
+            self.prog.refresh()
+            try:
+                nrepo = nrepos[repn]
+                jsn = {}
+                jsn['key'] = rep["Repo Name (Artifactory)"]
+                jsn['rclass'] = nrepo['class']
+                jsn['packageType'] = nrepo['type']
+                jsn['description'] = rep["Description"]
+                jsn['repoLayoutRef'] = rep["Repo Layout"]
+                if jsn['rclass'] == 'local':
+                    jsn['handleReleases'] = rep["Handles Releases"]
+                    jsn['handleSnapshots'] = rep["Handles Snapshots"]
+                if jsn['rclass'] == 'remote':
+                    jsn['handleReleases'] = rep["Handles Releases"]
+                    jsn['handleSnapshots'] = rep["Handles Snapshots"]
+                    jsn['url'] = rep["Remote URL"]
+                if jsn['rclass'] == 'virtual':
+                    jsn['repositories'] = nrepo['repos']
+                mthd = 'POST' if jsn['key'] in repos else 'PUT'
+                cfg = 'api/repositories/' + jsn['key']
+                self.dorequest(conn, mthd, cfg, jsn)
+            except: self.prog.stepsmap['Repositories'][3] += 1
+            finally: self.prog.stepsmap['Repositories'][1] += 1
 
     def migrateusers(self, conn, conf):
         defaultpasw = conf['Users']["Default Password"]
@@ -122,22 +163,27 @@ class Artifactory:
             if not isinstance(user, dict): continue
             if user['available'] != True: continue
             if user["Migrate This User"] != True: continue
-            jsn = {}
-            jsn['name'] = user["User Name (Artifactory)"]
-            jsn['email'] = user["Email Address"]
-            if "Password" in user:
-                jsn['password'] = user["Password"]
-            else:
-                jsn['password'] = defaultpasw
-                passresets.append(jsn['name'])
-            jsn['admin'] = user["Is An Administrator"]
-            jsn['groups'] = []
-            for group in user["Groups"]:
-                if group in self.scr.nexus.security.roles:
-                    jsn['groups'].append(group)
-            mthd = 'POST' if jsn['name'] in usrs else 'PUT'
-            cfg = 'api/security/users/' + jsn['name']
-            self.dorequest(conn, mthd, cfg, jsn)
+            self.prog.current = usern + ' -> ' + user["User Name (Artifactory)"]
+            self.prog.refresh()
+            try:
+                jsn = {}
+                jsn['name'] = user["User Name (Artifactory)"]
+                jsn['email'] = user["Email Address"]
+                if "Password" in user:
+                    jsn['password'] = user["Password"]
+                else:
+                    jsn['password'] = defaultpasw
+                    passresets.append(jsn['name'])
+                jsn['admin'] = user["Is An Administrator"]
+                jsn['groups'] = []
+                for group in user["Groups"]:
+                    if group in self.scr.nexus.security.roles:
+                        jsn['groups'].append(group)
+                mthd = 'POST' if jsn['name'] in usrs else 'PUT'
+                cfg = 'api/security/users/' + jsn['name']
+                self.dorequest(conn, mthd, cfg, jsn)
+            except: self.prog.stepsmap['Users'][3] += 1
+            finally: self.prog.stepsmap['Users'][1] += 1
         if len(passresets) > 0:
             cfg = 'api/security/users/authorization/expirePassword'
             self.dorequest(conn, 'POST', cfg, passresets)
@@ -151,13 +197,18 @@ class Artifactory:
         for grpn, grp in conf['Groups'].items():
             if grp['available'] != True: continue
             if grp["Migrate This Group"] != True: continue
-            jsn = {}
-            jsn['name'] = grp["Group Name (Artifactory)"]
-            jsn['description'] = grp["Description"]
-            jsn['autoJoin'] = grp["Auto Join Users"]
-            mthd = 'POST' if jsn['name'] in grps else 'PUT'
-            cfg = 'api/security/groups/' + jsn['name']
-            self.dorequest(conn, mthd, cfg, jsn)
+            self.prog.current = grpn + ' -> ' + grp["Group Name (Artifactory)"]
+            self.prog.refresh()
+            try:
+                jsn = {}
+                jsn['name'] = grp["Group Name (Artifactory)"]
+                jsn['description'] = grp["Description"]
+                jsn['autoJoin'] = grp["Auto Join Users"]
+                mthd = 'POST' if jsn['name'] in grps else 'PUT'
+                cfg = 'api/security/groups/' + jsn['name']
+                self.dorequest(conn, mthd, cfg, jsn)
+            except: self.prog.stepsmap['Groups'][3] += 1
+            finally: self.prog.stepsmap['Groups'][1] += 1
 
     def migrateperms(self, conn, conf):
         cfg = 'api/security/permissions'
@@ -176,55 +227,68 @@ class Artifactory:
         for permn, perm in conf['Permissions'].items():
             if perm['available'] != True: continue
             if perm["Migrate This Permission"] != True: continue
-            name = perm["Permission Name (Artifactory)"]
-            incpat = ','.join(perm["Include Patterns"])
-            excpat = ','.join(perm["Exclude Patterns"])
-            repo = privs[name]['repo']
-            if repo == '*': repo = 'ANY'
-            grps = grpdata[name] if name in grpdata else {}
-            jsn = {}
-            jsn['name'] = name
-            jsn['includesPattern'] = incpat
-            jsn['excludesPattern'] = excpat
-            jsn['repositories'] = [repo]
-            jsn['principals'] = {'users': {}, 'groups': grps}
-            cfg = 'api/security/permissions/' + jsn['name']
-            self.dorequest(conn, 'PUT', cfg, jsn)
+            self.prog.current = permn + ' -> '
+            self.prog.current += perm["Permission Name (Artifactory)"]
+            self.prog.refresh()
+            try:
+                name = perm["Permission Name (Artifactory)"]
+                incpat = ','.join(perm["Include Patterns"])
+                excpat = ','.join(perm["Exclude Patterns"])
+                repo = privs[name]['repo']
+                if repo == '*': repo = 'ANY'
+                grps = grpdata[name] if name in grpdata else {}
+                jsn = {}
+                jsn['name'] = name
+                jsn['includesPattern'] = incpat
+                jsn['excludesPattern'] = excpat
+                jsn['repositories'] = [repo]
+                jsn['principals'] = {'users': {}, 'groups': grps}
+                cfg = 'api/security/permissions/' + jsn['name']
+                self.dorequest(conn, 'PUT', cfg, jsn)
+            except: self.prog.stepsmap['Permissions'][3] += 1
+            finally: self.prog.stepsmap['Permissions'][1] += 1
 
     def migrateldap(self, conf, root, ns):
         if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
             return
         src = conf["Security Migration Setup"]["LDAP Migration Setup"]
         if src["Migrate LDAP"] == False: return
-        data = self.scr.nexus.ldap.ldap
-        itr = None
-        ldap = self.buildldap(ns)
-        try: itr = ldap.iter()
-        except AttributeError: itr = ldap.getiterator()
-        for item in itr:
-            tag = item.tag[len(ns):] if item.tag.startswith(ns) else item.tag
-            if tag == 'key': item.text = src["LDAP Setting Name"]
-            elif tag == 'name': item.text = src["LDAP Group Name"]
-            elif tag == 'enabledLdap': item.text = src["LDAP Setting Name"]
-            elif tag == 'managerPassword' and 'managerDn' in data:
-                item.text = src["LDAP Password"]
-            elif tag in data: item.text = data[tag]
-        sec = root.find(ns + 'security')
-        sets = sec.find(ns + 'ldapSettings')
-        newset = ldap.find(ns + 'ldapSetting')
-        ldap.remove(newset)
-        key = newset.find(ns + 'key').text
-        for grp in sets.findall(ns + 'ldapSetting'):
-            if grp.find(ns + 'key').text == key: sets.remove(grp)
-        sets.append(newset)
-        if 'strategy' not in data: return
-        grps = sec.find(ns + 'ldapGroupSettings')
-        newgrp = ldap.find(ns + 'ldapGroupSetting')
-        ldap.remove(newgrp)
-        name = newgrp.find(ns + 'name').text
-        for grp in grps.findall(ns + 'ldapGroupSetting'):
-            if grp.find(ns + 'name').text == name: grps.remove(grp)
-        grps.append(newgrp)
+        self.prog.current = "LDAP"
+        self.prog.refresh()
+        try:
+            data = self.scr.nexus.ldap.ldap
+            itr = None
+            ldap = self.buildldap(ns)
+            try: itr = ldap.iter()
+            except AttributeError: itr = ldap.getiterator()
+            for item in itr:
+                tag = item.tag
+                if item.tag.startswith(ns): tag = item.tag[len(ns):]
+                if tag == 'key': item.text = src["LDAP Setting Name"]
+                elif tag == 'name': item.text = src["LDAP Group Name"]
+                elif tag == 'enabledLdap': item.text = src["LDAP Setting Name"]
+                elif tag == 'managerPassword' and 'managerDn' in data:
+                    item.text = src["LDAP Password"]
+                elif tag in data: item.text = data[tag]
+            sec = root.find(ns + 'security')
+            sets = sec.find(ns + 'ldapSettings')
+            newset = ldap.find(ns + 'ldapSetting')
+            ldap.remove(newset)
+            key = newset.find(ns + 'key').text
+            for grp in sets.findall(ns + 'ldapSetting'):
+                if grp.find(ns + 'key').text == key: sets.remove(grp)
+            sets.append(newset)
+            if 'strategy' not in data: return
+            grps = sec.find(ns + 'ldapGroupSettings')
+            newgrp = ldap.find(ns + 'ldapGroupSetting')
+            ldap.remove(newgrp)
+            name = newgrp.find(ns + 'name').text
+            for grp in grps.findall(ns + 'ldapGroupSetting'):
+                if grp.find(ns + 'name').text == name: grps.remove(grp)
+            grps.append(newgrp)
+        except: self.prog.stepsmap['Configurations'][3] += 1
+        finally: self.prog.stepsmap['Configurations'][1] += 1
+        self.prog.refresh()
 
     def buildldap(self, ns):
         ldap = ET.Element('ldap')
