@@ -19,7 +19,7 @@ class Screen:
         self.h, self.w = 22, 78
         self.nexus = Nexus()
         self.artifactory = Artifactory(self)
-        self.wrap = textwrap.TextWrapper(width=self.w)
+        self.wrap = textwrap.TextWrapper(width=self.w - 1)
         self.initattrs()
         self.frame = unicurses.newwin(self.h + 2, self.w + 2, 0, 0)
         unicurses.wborder(self.frame)

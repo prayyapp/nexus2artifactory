@@ -8,11 +8,11 @@ class Security(Menu):
     def __init__(self, scr):
         Menu.__init__(self, scr, "Migrate Security")
         self.hasldap = None
-        self.users = self.mkopt('u', "Users",
+        self.users = self.mkopt('u', "Users Migration Setup",
                                 [User(self.scr, self), self.refresh])
-        self.groups = self.mkopt('g', "Groups",
+        self.groups = self.mkopt('g', "Groups Migration Setup",
                                  [Group(self.scr, self), self.refresh])
-        self.perms = self.mkopt('p', "Permissions",
+        self.perms = self.mkopt('p', "Permissions Migration Setup",
                                 [Permission(self.scr, self), self.refresh])
         self.opthead = [
             self.users,

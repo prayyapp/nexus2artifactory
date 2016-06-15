@@ -1,4 +1,5 @@
 import unicurses
+from . import hlp
 
 # The base menu class. A menu consists of a list of options, each of which can
 # be accessed by pressing an associated key on the keyboard. Each option may
@@ -39,6 +40,7 @@ class Menu:
     #   instead exit the contextual help system)
     def mkopt(self, key, text, act, val=None, verif=None, alt=None, save=True,
               hdoc=None):
+        if hdoc == None and text in hlp: hdoc = hlp[text]
         if isinstance(hdoc, basestring):
             hdoc = self.scr.wrap.fill(' '.join(hdoc.split()))
         if not isinstance(act, list): act = [act]
@@ -285,7 +287,7 @@ class Menu:
                 if self.keymap[key]['help'] == False: break
                 unicurses.wclear(self.scr.win)
                 title = self.keymap[key]['text']
-                title = ' '*(self.scr.w - len(title) - 6) + title + " Help "
+                title = ' '*(self.scr.w - len(title) - 6) + title + " Help \n"
                 unicurses.waddstr(self.scr.win, title, self.scr.attr['ttl'])
                 unicurses.waddstr(self.scr.win, self.keymap[key]['help'])
                 string = "\n\nPress 'q' to exit help.\n\n"

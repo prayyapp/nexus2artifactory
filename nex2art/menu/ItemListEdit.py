@@ -19,7 +19,6 @@ class ItemListEdit(Menu):
                 self.mkopt('d', "Delete " + self.typ, '&')]
         self.opts += [
             None,
-            self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
 
     def updateparent(self, _=None):

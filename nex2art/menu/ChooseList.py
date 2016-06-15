@@ -11,7 +11,6 @@ class ChooseList(Menu):
         self.pagedopts.sort(key=lambda x: x['text'])
         self.opts = [
             None,
-            self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
 
     def setchoice(self, opt):

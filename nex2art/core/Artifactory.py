@@ -89,16 +89,16 @@ class Artifactory:
             if rep['available'] != True: continue
             if rep["Migrate This Repo"] != True: continue
             repoct += 1
-        for grpn, grp in secconf['Groups'].items():
+        for grpn, grp in secconf['Groups Migration Setup'].items():
             if grp['available'] != True: continue
             if grp["Migrate This Group"] != True: continue
             grpct += 1
-        for usern, user in secconf['Users'].items():
+        for usern, user in secconf['Users Migration Setup'].items():
             if not isinstance(user, dict): continue
             if user['available'] != True: continue
             if user["Migrate This User"] != True: continue
             usrct += 1
-        for permn, perm in secconf['Permissions'].items():
+        for permn, perm in secconf['Permissions Migration Setup'].items():
             if perm['available'] != True: continue
             if perm["Migrate This Permission"] != True: continue
             permct += 1
@@ -134,7 +134,7 @@ class Artifactory:
                 jsn['key'] = rep["Repo Name (Artifactory)"]
                 jsn['rclass'] = nrepo['class']
                 jsn['packageType'] = nrepo['type']
-                jsn['description'] = rep["Description"]
+                jsn['description'] = rep["Repo Description"]
                 jsn['repoLayoutRef'] = rep["Repo Layout"]
                 if jsn['rclass'] == 'local':
                     jsn['handleReleases'] = rep["Handles Releases"]
@@ -152,14 +152,14 @@ class Artifactory:
             finally: self.prog.stepsmap['Repositories'][1] += 1
 
     def migrateusers(self, conn, conf):
-        defaultpasw = conf['Users']["Default Password"]
         passresets = []
         cfg = 'api/security/users'
         result = self.dorequest(conn, 'GET', cfg)
         usrs = {}
         for res in result: usrs[res['name']] = True
-        if 'Users' not in conf: return
-        for usern, user in conf['Users'].items():
+        if 'Users Migration Setup' not in conf: return
+        defaultpasw = conf['Users Migration Setup']["Default Password"]
+        for usern, user in conf['Users Migration Setup'].items():
             if not isinstance(user, dict): continue
             if user['available'] != True: continue
             if user["Migrate This User"] != True: continue
@@ -193,8 +193,8 @@ class Artifactory:
         result = self.dorequest(conn, 'GET', cfg)
         grps = {}
         for res in result: grps[res['name']] = True
-        if 'Groups' not in conf: return
-        for grpn, grp in conf['Groups'].items():
+        if 'Groups Migration Setup' not in conf: return
+        for grpn, grp in conf['Groups Migration Setup'].items():
             if grp['available'] != True: continue
             if grp["Migrate This Group"] != True: continue
             self.prog.current = grpn + ' -> ' + grp["Group Name (Artifactory)"]
@@ -202,7 +202,7 @@ class Artifactory:
             try:
                 jsn = {}
                 jsn['name'] = grp["Group Name (Artifactory)"]
-                jsn['description'] = grp["Description"]
+                jsn['description'] = grp["Group Description"]
                 jsn['autoJoin'] = grp["Auto Join Users"]
                 mthd = 'POST' if jsn['name'] in grps else 'PUT'
                 cfg = 'api/security/groups/' + jsn['name']
@@ -214,8 +214,9 @@ class Artifactory:
         cfg = 'api/security/permissions'
         result = self.dorequest(conn, 'GET', cfg)
         grpdata = {}
-        if 'Groups' not in conf: conf['Groups'] = {}
-        for grpn, grp in conf['Groups'].items():
+        if 'Groups Migration Setup' not in conf:
+            conf['Groups Migration Setup'] = {}
+        for grpn, grp in conf['Groups Migration Setup'].items():
             grpname = grp["Group Name (Artifactory)"]
             if 'Permissions' not in grp: continue
             for permn, perm in grp['Permissions'].items():
@@ -223,8 +224,8 @@ class Artifactory:
                 if permn in grpdata: grpdata[permn][grpname] = perms
                 else: grpdata[permn] = {grpname: perms}
         privs = self.scr.nexus.security.privs
-        if 'Permissions' not in conf: return
-        for permn, perm in conf['Permissions'].items():
+        if 'Permissions Migration Setup' not in conf: return
+        for permn, perm in conf['Permissions Migration Setup'].items():
             if perm['available'] != True: continue
             if perm["Migrate This Permission"] != True: continue
             self.prog.current = permn + ' -> '

@@ -62,8 +62,7 @@ following options are available:
   for incompatibilities after the Nexus instance has been modified.
 - <kbd>x</kbd> *Run Migration* - Run the migration.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
-  context-sensitive help for that option. **Note:** At the moment, no help pages
-  are configured.
+  context-sensitive help for that option.
 - <kbd>q</kbd> *Exit* - Quit the tool.
 
 The first step is to connect to the Nexus and Artifactory instances, so type
@@ -86,8 +85,7 @@ The following options are available:
   both the username and password are correct, they will both be hilighted in
   red.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
-  context-sensitive help for that option. **Note:** At the moment, no help pages
-  are configured.
+  context-sensitive help for that option.
 - <kbd>q</kbd> *Back* - Go back to the main menu.
 
 ![Setup Menu Screenshot With Filled Options](doc/setupFilled.png)
@@ -118,8 +116,7 @@ The following options are available:
 - <kbd>e</kbd> *Edit Repository* - Typing <kbd>e</kbd> followed by a number
   allows you to edit the associated repository.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
-  context-sensitive help for that option. **Note:** At the moment, no help pages
-  are configured.
+  context-sensitive help for that option.
 - <kbd>q</kbd> *Back* - Go back to the main menu.
 
 The error turns out to be in the `central-m1` repository, so type <kbd>e</kbd>
@@ -137,7 +134,7 @@ The following options are available:
 - *Repo Class* - Whether the repository is local, remote, shadow, or virtual.
   Not editable.
 - *Repo Type* - The repository's package type. Not editable.
-- <kbd>d</kbd> *Description* - The repository description. Defaults to the
+- <kbd>d</kbd> *Repo Description* - The repository description. Defaults to the
   "display name" of the repository on the Nexus instance.
 - <kbd>l</kbd> *Repo Layout* - The layout of the repository. Defaults to the
   default layout for the repository's package type.
@@ -148,8 +145,7 @@ The following options are available:
 - <kbd>u</kbd> *Remote URL* - The URL of the repository this one proxies. Remote
   repositories only.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
-  context-sensitive help for that option. **Note:** At the moment, no help pages
-  are configured.
+  context-sensitive help for that option.
 - <kbd>q</kbd> *Back* - Go back to the repository list menu.
 
 The error shows that the repository's class, `shadow`, is invalid. There are a
@@ -202,8 +198,6 @@ in development, and should be added to the tool soon:
 - modify virtual repository child lists
 - modify repository package types
 - obfuscate passwords in save files
-- add help pages to all commands
-- add a proper migration progress screen
 - support Nexus 3
 
 Nearly everything the tool does not yet update can be fixed manually via the

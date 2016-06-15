@@ -18,7 +18,7 @@ class RepoEdit(Menu):
                        verif=self.supportclass),
             self.mkopt('INFO', "Repo Type", None, val=repo['type'],
                        verif=self.supporttype),
-            self.mkopt('d', "Description", '|', val=repo['desc']),
+            self.mkopt('d', "Repo Description", '|', val=repo['desc']),
             self.mkopt('l', "Repo Layout", '|', val=repo['layout'])]
         if repo['class'] in ('local', 'remote'):
             self.opts += [

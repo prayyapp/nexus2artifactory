@@ -47,7 +47,7 @@ class GroupEdit(Menu):
                        val=group['groupName'], verif=self.chname),
             self.migrate,
             None,
-            self.mkopt('d', "Description", '|', val=group['description']),
+            self.mkopt('d', "Group Description", '|', val=group['description']),
             self.mkopt('j', "Auto Join Users", '+', val=False),
             self.perms,
             None,

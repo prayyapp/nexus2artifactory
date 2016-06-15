@@ -1,3 +1,4 @@
+from .Help import hlp
 from .SecConst import getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
 from .SecConst import permissionSet
 from .Security import Security
