@@ -85,23 +85,27 @@ class Artifactory:
 
     def initprogress(self, conf, secconf):
         repoct, grpct, usrct, permct, confct = 0, 0, 0, 0, 0
-        for repn, rep in conf["Repository Migration Setup"].items():
-            if rep['available'] != True: continue
-            if rep["Migrate This Repo"] != True: continue
-            repoct += 1
-        for grpn, grp in secconf['Groups Migration Setup'].items():
-            if grp['available'] != True: continue
-            if grp["Migrate This Group"] != True: continue
-            grpct += 1
-        for usern, user in secconf['Users Migration Setup'].items():
-            if not isinstance(user, dict): continue
-            if user['available'] != True: continue
-            if user["Migrate This User"] != True: continue
-            usrct += 1
-        for permn, perm in secconf['Permissions Migration Setup'].items():
-            if perm['available'] != True: continue
-            if perm["Migrate This Permission"] != True: continue
-            permct += 1
+        if "Repository Migration Setup" in conf:
+            for repn, rep in conf["Repository Migration Setup"].items():
+                if rep['available'] != True: continue
+                if rep["Migrate This Repo"] != True: continue
+                repoct += 1
+        if "Groups Migration Setup" in secconf:
+            for grpn, grp in secconf['Groups Migration Setup'].items():
+                if grp['available'] != True: continue
+                if grp["Migrate This Group"] != True: continue
+                grpct += 1
+        if "Users Migration Setup" in secconf:
+            for usern, user in secconf['Users Migration Setup'].items():
+                if not isinstance(user, dict): continue
+                if user['available'] != True: continue
+                if user["Migrate This User"] != True: continue
+                usrct += 1
+        if "Permissions Migration Setup" in secconf:
+            for permn, perm in secconf['Permissions Migration Setup'].items():
+                if perm['available'] != True: continue
+                if perm["Migrate This Permission"] != True: continue
+                permct += 1
         ldapq = True
         if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
             ldapq = False
