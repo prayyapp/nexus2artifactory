@@ -186,6 +186,19 @@ list, and then type <kbd>6</kbd> to unmark the repository.
 Now, the error is gone. The error has disappeared on the main menu as well, and
 the migration can now be run.
 
+Logging
+-------
+
+This tool can optionally write logs to a file. This is primarily useful for
+debugging purposes. Logging can be configured using the following commandline
+options:
+- `-l`, `--log-file`: Specify a file to write logs to. If the file already
+  exists, the log session is appended to the existing contents. If this option
+  is not given, no logging is performed.
+- `-v`, `--log-level`: Specify the minimum log level. All logs below this level
+  are ignored. Possible values are `error`, `warning`, `info`, and `debug`. If
+  this option is not given, it defaults to `info`.
+
 Future Development
 ------------------
 

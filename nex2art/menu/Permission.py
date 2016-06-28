@@ -1,9 +1,12 @@
+import logging
 from ..core import Menu
 from . import PermissionEdit
 
 class Permission(Menu):
     def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate Permissions")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing Permission Menu.")
         self.parent = parent
         self.optmap = {}
         self.opts = [
@@ -12,8 +15,10 @@ class Permission(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
+        self.log.debug("Permission Menu initialized.")
 
     def initialize(self):
+        self.log.debug("Readying Permission Menu for display.")
         if self.scr.nexus.security.privsdirty == False: pass
         elif self.scr.nexus.security.privs == None:
             opt = self.mkopt('INFO', "no connected Nexus instance", None)
@@ -43,6 +48,7 @@ class Permission(Menu):
                 opt['act'] = ['+', opt['alt'][0].updatemigrate]
                 self.pagedopts.append(opt)
         self.scr.nexus.security.privsdirty = False
+        self.log.debug("Permission Menu ready for display.")
 
     def collectconf(self):
         conf, privs = {}, []

@@ -1,10 +1,12 @@
 import os
 import re
+import logging
 import xml.etree.ElementTree as ET
 from . import getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
 
 class Security:
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.initialize()
 
     def initialize(self):
@@ -24,7 +26,9 @@ class Security:
     def refresh(self, path):
         path = os.path.abspath(path)
         config = os.path.join(path, 'conf', 'security.xml')
+        self.log.info("Reading security config from %s.", config)
         if not os.path.isfile(config):
+            self.log.error("Security config file does not exist.")
             return "Given path is not a valid Nexus instance."
         try:
             xml = ET.parse(config).getroot()
@@ -43,8 +47,11 @@ class Security:
                 self.flattenrole(role)
                 self.consolidateprivs(role)
             self.getusers(xml)
+            self.log.info("Successfully read security config.")
             return True
-        except: return "Configuration file security.xml is not valid."
+        except:
+            self.log.exception("Error reading security config:")
+            return "Configuration file security.xml is not valid."
 
     def gettargets(self, xml):
         targets = {}

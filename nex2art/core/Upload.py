@@ -4,6 +4,7 @@ import json
 import time
 import Queue
 import base64
+import logging
 import urllib2
 import threading
 
@@ -16,6 +17,7 @@ class PutRequest(urllib2.Request):
 
 class Upload:
     def __init__(self, scr, parent):
+        self.log = logging.getLogger(__name__)
         self.scr = scr
         self.parent = parent
         self.filelock = threading.RLock()
@@ -23,18 +25,22 @@ class Upload:
         self.ts = 0
 
     def upload(self, conf):
+        self.log.info("Uploading artifacts.")
         newts = int(1000*time.time())
         url, headers = self.getconndata()
         queue = Queue.Queue(2*self.threadct)
         thargs = queue, url, headers
         threads = []
+        self.log.info("Creating %d threads.", self.threadct)
         for _ in xrange(self.threadct):
             t = threading.Thread(target=self.runThread, args=thargs)
             threads.append(t)
             t.start()
+        self.log.info("Threads created successfully.")
         for f in self.filelistgenerator(conf): queue.put(f)
         for _ in xrange(self.threadct): queue.put(None)
         for t in threads: t.join()
+        self.log.info("All artifacts successfully uploaded.")
         self.ts = newts
         self.parent.prog.stepsmap['Artifacts'][1] = 1
 
@@ -95,18 +101,27 @@ class Upload:
             chksumheaders['X-Checksum-Sha1'] = js['digest.sha1']
             chksumheaders['X-Checksum-Md5'] = js['digest.md5']
             chksumheaders.update(headers)
+            self.log.info("Deploying artifact checksum to %s.", puturl)
             req = PutRequest(puturl, headers=chksumheaders)
             try: stat = urllib2.urlopen(req).getcode()
-            except urllib2.HTTPError as ex: stat = ex.code
-            except urllib2.URLError as ex: stat = ex.reason
+            except urllib2.HTTPError as ex:
+                if ex.code == 404:
+                    self.log.info("Artifact not found, upload required.")
+                else: self.log.exception("Error deploying artifact checksum:")
+                stat = ex.code
+            except urllib2.URLError as ex:
+                self.log.exception("Error deploying artifact checksum:")
+                stat = ex.reason
             if stat == 404: stat = self.deployArtifact(puturl, path, headers)
             if not isinstance(stat, (int, long)) or stat < 200 or stat >= 300:
+                self.log.error("Unable to deploy artifact to %s.", puturl)
                 self.incFileCount(repo + ':' + js['storageItem-path'], True)
             else:
                 for ext in '.sha1', '.md5':
                     hpath = path + ext
                     if not os.path.isfile(hpath): continue
                     self.deployArtifact(puturl + ext, hpath, headers)
+                self.log.info("Successfully deployed artifact to %s.", puturl)
                 self.incFileCount(repo + ':' + js['storageItem-path'])
 
     def deployArtifact(self, url, path, headers):
@@ -115,10 +130,15 @@ class Upload:
         artifactheaders['Content-Length'] = str(os.stat(path).st_size)
         artifactheaders.update(headers)
         with open(path, 'r') as f:
+            self.log.info("Uploading artifact to %s.", url)
             req = PutRequest(url, f, artifactheaders)
             try: stat = urllib2.urlopen(req).getcode()
-            except urllib2.HTTPError as ex: stat = ex.code
-            except urllib2.URLError as ex: stat = ex.reason
+            except urllib2.HTTPError as ex:
+                self.log.exception("Error uploading artifact:")
+                stat = ex.code
+            except urllib2.URLError as ex:
+                self.log.exception("Error uploading artifact:")
+                stat = ex.reason
         return stat
 
     def incFileCount(self, fname, error=False):

@@ -1,3 +1,4 @@
+import logging
 from ..core import Menu
 from . import User
 from . import Group
@@ -7,6 +8,8 @@ from . import Ldap
 class Security(Menu):
     def __init__(self, scr):
         Menu.__init__(self, scr, "Migrate Security")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing Security Menu.")
         self.hasldap = None
         self.users = self.mkopt('u', "Users Migration Setup",
                                 [User(self.scr, self), self.refresh])
@@ -25,15 +28,18 @@ class Security(Menu):
         self.ldapmenu = self.mkopt('l', "LDAP Migration Setup", None)
         self.ldapmenu['act'][0] = Ldap(self.scr, self.ldapmenu)
         self.opts = []
+        self.log.debug("Security Menu initialized.")
 
     def initialize(self):
         hasldap = self.scr.nexus.ldap.ldap != None
         self.ldapmenu['act'][0].updateparent()
         if self.hasldap == hasldap: return
+        self.log.debug("Readying Security Menu for display (ldap=%s).", hasldap)
         self.hasldap = hasldap
         self.opts = self.opthead[:]
         if self.hasldap: self.opts.append(self.ldapmenu)
         self.opts.extend(self.opttail)
+        self.log.debug("Security Menu ready for display.")
 
     def refresh(self, _=None):
         self.verify()

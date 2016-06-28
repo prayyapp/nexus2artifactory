@@ -3,6 +3,7 @@ import re
 import sys
 import json
 import base64
+import logging
 import urllib2
 import urlparse
 import StringIO
@@ -28,6 +29,7 @@ class MigrationError(Exception):
 
 class Artifactory:
     def __init__(self, scr):
+        self.log = logging.getLogger(__name__)
         self.scr = scr
         self.upload = Upload(scr, self)
         self.json = re.compile(r'^application/(?:[^;]+\+)?json(?:;.+)?$')
@@ -41,11 +43,13 @@ class Artifactory:
             if None in (self.url, self.user, self.pasw):
                 msg = "Connection to Artifactory server not configured."
                 raise MigrationError(msg)
+            self.log.info("Migrating to Artifactory.")
             self.prog = prog
             secconf = conf["Security Migration Setup"]
             self.initprogress(conf, secconf)
             cfg = "api/system/configuration"
             conn = self.setupconn()
+            self.log.info("Enabling password expiration.")
             artxml = self.dorequest(conn, 'GET', cfg)
             root = artxml.getroot()
             ns = root.tag[:root.tag.index('}') + 1]
@@ -56,6 +60,7 @@ class Artifactory:
             self.migrategroups(conn, secconf)
             self.migrateusers(conn, secconf)
             self.migrateperms(conn, secconf)
+            self.log.info("Resetting password expiration.")
             artxml = self.dorequest(conn, 'GET', cfg)
             root = artxml.getroot()
             ns = root.tag[:root.tag.index('}') + 1]
@@ -64,7 +69,9 @@ class Artifactory:
             self.dorequest(conn, 'POST', cfg, artxml)
             self.upload.upload(conf)
             return True
-        except MigrationError as ex: return ex.value
+        except MigrationError as ex:
+            self.log.exception("Migration Error:")
+            return ex.value
 
     def enablePasswordExpire(self, root, ns):
         exp, itr = None, None
@@ -121,6 +128,7 @@ class Artifactory:
         self.prog.refresh()
 
     def migraterepos(self, conn, conf):
+        self.log.info("Migrating repository definitions.")
         cfg = 'api/repositories'
         result = self.dorequest(conn, 'GET', cfg)
         nrepos = {}
@@ -130,6 +138,8 @@ class Artifactory:
         for repn, rep in conf["Repository Migration Setup"].items():
             if rep['available'] != True: continue
             if rep["Migrate This Repo"] != True: continue
+            self.log.info("Migrating repo %s -> %s.", repn,
+                          rep["Repo Name (Artifactory)"])
             self.prog.current = repn + ' -> ' + rep["Repo Name (Artifactory)"]
             self.prog.refresh()
             try:
@@ -152,10 +162,13 @@ class Artifactory:
                 mthd = 'POST' if jsn['key'] in repos else 'PUT'
                 cfg = 'api/repositories/' + jsn['key']
                 self.dorequest(conn, mthd, cfg, jsn)
-            except: self.prog.stepsmap['Repositories'][3] += 1
+            except:
+                self.log.exception("Error migrating repository %s:", repn)
+                self.prog.stepsmap['Repositories'][3] += 1
             finally: self.prog.stepsmap['Repositories'][1] += 1
 
     def migrateusers(self, conn, conf):
+        self.log.info("Migrating users.")
         passresets = []
         cfg = 'api/security/users'
         result = self.dorequest(conn, 'GET', cfg)
@@ -167,6 +180,8 @@ class Artifactory:
             if not isinstance(user, dict): continue
             if user['available'] != True: continue
             if user["Migrate This User"] != True: continue
+            self.log.info("Migrating user %s -> %s.", usern,
+                          user["User Name (Artifactory)"])
             self.prog.current = usern + ' -> ' + user["User Name (Artifactory)"]
             self.prog.refresh()
             try:
@@ -186,13 +201,16 @@ class Artifactory:
                 mthd = 'POST' if jsn['name'] in usrs else 'PUT'
                 cfg = 'api/security/users/' + jsn['name']
                 self.dorequest(conn, mthd, cfg, jsn)
-            except: self.prog.stepsmap['Users'][3] += 1
+            except:
+                self.log.exception("Error migrating user %s:", usern)
+                self.prog.stepsmap['Users'][3] += 1
             finally: self.prog.stepsmap['Users'][1] += 1
         if len(passresets) > 0:
             cfg = 'api/security/users/authorization/expirePassword'
             self.dorequest(conn, 'POST', cfg, passresets)
 
     def migrategroups(self, conn, conf):
+        self.log.info("Migrating groups.")
         cfg = 'api/security/groups'
         result = self.dorequest(conn, 'GET', cfg)
         grps = {}
@@ -201,6 +219,8 @@ class Artifactory:
         for grpn, grp in conf['Groups Migration Setup'].items():
             if grp['available'] != True: continue
             if grp["Migrate This Group"] != True: continue
+            self.log.info("Migrating group %s -> %s.", grpn,
+                          grp["Group Name (Artifactory)"])
             self.prog.current = grpn + ' -> ' + grp["Group Name (Artifactory)"]
             self.prog.refresh()
             try:
@@ -211,10 +231,13 @@ class Artifactory:
                 mthd = 'POST' if jsn['name'] in grps else 'PUT'
                 cfg = 'api/security/groups/' + jsn['name']
                 self.dorequest(conn, mthd, cfg, jsn)
-            except: self.prog.stepsmap['Groups'][3] += 1
+            except:
+                self.log.exception("Error migrating group %s:", grpn)
+                self.prog.stepsmap['Groups'][3] += 1
             finally: self.prog.stepsmap['Groups'][1] += 1
 
     def migrateperms(self, conn, conf):
+        self.log.info("Migrating permissions.")
         cfg = 'api/security/permissions'
         result = self.dorequest(conn, 'GET', cfg)
         grpdata = {}
@@ -232,6 +255,8 @@ class Artifactory:
         for permn, perm in conf['Permissions Migration Setup'].items():
             if perm['available'] != True: continue
             if perm["Migrate This Permission"] != True: continue
+            self.log.info("Migrating permission %s -> %s.", permn,
+                          perm["Permission Name (Artifactory)"])
             self.prog.current = permn + ' -> '
             self.prog.current += perm["Permission Name (Artifactory)"]
             self.prog.refresh()
@@ -250,7 +275,9 @@ class Artifactory:
                 jsn['principals'] = {'users': {}, 'groups': grps}
                 cfg = 'api/security/permissions/' + jsn['name']
                 self.dorequest(conn, 'PUT', cfg, jsn)
-            except: self.prog.stepsmap['Permissions'][3] += 1
+            except:
+                self.log.exception("Error migrating permission %s:", permn)
+                self.prog.stepsmap['Permissions'][3] += 1
             finally: self.prog.stepsmap['Permissions'][1] += 1
 
     def migrateldap(self, conf, root, ns):
@@ -258,6 +285,7 @@ class Artifactory:
             return
         src = conf["Security Migration Setup"]["LDAP Migration Setup"]
         if src["Migrate LDAP"] == False: return
+        self.log.info("Migrating LDAP configuration.")
         self.prog.current = "LDAP"
         self.prog.refresh()
         try:
@@ -291,7 +319,9 @@ class Artifactory:
             for grp in grps.findall(ns + 'ldapGroupSetting'):
                 if grp.find(ns + 'name').text == name: grps.remove(grp)
             grps.append(newgrp)
-        except: self.prog.stepsmap['Configurations'][3] += 1
+        except:
+            self.log.exception("Error migrating LDAP configuration:")
+            self.prog.stepsmap['Configurations'][3] += 1
         finally: self.prog.stepsmap['Configurations'][1] += 1
         self.prog.refresh()
 
@@ -343,12 +373,17 @@ class Artifactory:
         headers.update(extraheaders)
         url = urlparse.urlunsplit((scheme, host, rootpath + path, '', ''))
         req = MethodRequest(url, body, headers, method=method)
+        self.log.info("Sending %s request to %s.", method, url)
         try:
             resp = urllib2.urlopen(req)
             stat = resp.getcode()
             ctype = resp.info().get('Content-Type', 'application/octet-stream')
-        except urllib2.HTTPError as ex: stat = ex.code
-        except urllib2.URLError as ex: stat = ex.reason
+        except urllib2.HTTPError as ex:
+            self.log.exception("Error making request:")
+            stat = ex.code
+        except urllib2.URLError as ex:
+            self.log.exception("Error making request:")
+            stat = ex.reason
         if not isinstance(stat, (int, long)) or stat < 200 or stat >= 300:
             msg = "Unable to " + method + " " + path + ": " + str(stat) + "."
             raise MigrationError(msg)

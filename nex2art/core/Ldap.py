@@ -1,8 +1,10 @@
 import os
+import logging
 import xml.etree.ElementTree as ET
 
 class Ldap:
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.initialize()
 
     def initialize(self):
@@ -10,9 +12,14 @@ class Ldap:
 
     def refresh(self, path):
         ldapxml = os.path.join(path, 'conf', 'ldap.xml')
+        self.log.info("Reading LDAP config from %s.", ldapxml)
         if os.path.isfile(ldapxml):
-            try: self.ldap = self.getldap(ldapxml)
-            except: pass
+            try:
+                self.ldap = self.getldap(ldapxml)
+                self.log.info("Successfully read LDAP config.")
+            except:
+                self.log.exception("Error reading LDAP config:")
+        else: self.log.info("LDAP config file does not exist, skipping.")
 
     def getldap(self, ldapxml):
         tmpdata, ldap = {}, {}

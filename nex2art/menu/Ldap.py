@@ -1,8 +1,11 @@
+import logging
 from ..core import Menu
 
 class Ldap(Menu):
     def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate LDAP")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing LDAP Menu.")
         self.parent = parent
         self.migrate = self.mkopt('m', "Migrate LDAP", ['+', self.updateparent],
                                   val=True)
@@ -24,6 +27,7 @@ class Ldap(Menu):
             self.opts = self.manageropts + self.alwaysopts
         else: self.opts = self.alwaysopts
         self.updateparent()
+        self.log.debug("LDAP Menu initialized.")
 
     def updateparent(self, _=None):
         self.parent['val'] = self.migrate['val']

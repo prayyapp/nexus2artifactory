@@ -1,3 +1,4 @@
+import logging
 import textwrap
 import unicurses
 from . import Nexus, Artifactory
@@ -12,6 +13,8 @@ class Screen:
     # constructor takes a parameter 'screen', which is the window representing
     # the entire available screen.
     def __init__(self, screen):
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing curses screen.")
         self.msg = None
         self.screen = screen
         self.mainmenu = None
@@ -25,6 +28,7 @@ class Screen:
         unicurses.wborder(self.frame)
         self.win = unicurses.newwin(self.h, self.w, 0, 0)
         unicurses.keypad(self.win, 1)
+        self.log.debug("Curses screen initialized.")
 
     def modified(self):
         return self.mainmenu.collectconf() != self.oldstate
@@ -47,6 +51,33 @@ class Screen:
         self.attr['pfg'] = unicurses.A_BOLD | unicurses.color_pair(5)
         self.attr['pbg'] = unicurses.A_BOLD | unicurses.color_pair(6)
 
+    def showchar(self, ch):
+        encch = None
+        try: encch = chr(ch).encode('string_escape')
+        except ValueError:
+            if ch == unicurses.KEY_ENTER: encch = '\\n'
+            elif ch == unicurses.KEY_HOME: encch = 'HOME'
+            elif ch == unicurses.KEY_END: encch = 'END'
+            elif ch == unicurses.KEY_LEFT: encch = 'LEFT'
+            elif ch == unicurses.KEY_RIGHT: encch = 'RIGHT'
+            elif ch == unicurses.KEY_UP: encch = 'UP'
+            elif ch == unicurses.KEY_DOWN: encch = 'DOWN'
+            elif ch == unicurses.KEY_PPAGE: encch = 'PAGEUP'
+            elif ch == unicurses.KEY_NPAGE: encch = 'PAGEDOWN'
+            elif ch == unicurses.KEY_IC: encch = 'INSERT'
+            elif ch == unicurses.KEY_BACKSPACE: encch = '\\x08'
+            elif ch == unicurses.KEY_DC: encch = '\\x7f'
+            else: encch = 'KEY_' + hex(ch)
+        if encch == '\\n': return 'ENTER'
+        elif encch == '\\t': return 'TAB'
+        elif encch == '\\x08': return 'BACKSPACE'
+        elif encch == '\\x7f': return 'DELETE'
+        elif encch == '\\x1b': return 'ESCAPE'
+        elif encch == '\\\\': return '\\'
+        elif encch == '\\\'': return '\''
+        elif encch == '\\\"': return '\"'
+        else: return encch
+
     # A wrapper for window.getch(). The parameter 'win' is the window to getch
     # from. See the render() function for details on the parameter 'etc'. This
     # function exists because unicurses notifies the application of a screen
@@ -56,7 +87,9 @@ class Screen:
     def getch(self, win, etc=None):
         while True:
             ch = unicurses.wgetch(win)
+            self.log.debug("Key '%s' pressed.", self.showchar(ch))
             if ch == unicurses.KEY_RESIZE:
+                self.log.debug("Screen resize detected.")
                 self.render(etc)
             else: return ch
 
@@ -67,6 +100,7 @@ class Screen:
     # well as refresh information for it, relative to the window. This allows an
     # active pad to be correctly redrawn after a resize.
     def render(self, etc=None):
+        self.log.debug("Rendering the window.")
         unicurses.redrawwin(self.screen)
         unicurses.noutrefresh(self.screen)
         (hw, ww) = unicurses.getmaxyx(self.screen)
@@ -81,3 +115,4 @@ class Screen:
             (yb, xb) = unicurses.getbegyx(self.win)
             unicurses.prefresh(buf, a, b, c + yb, d + xb, e + yb, f + xb)
         unicurses.doupdate()
+        self.log.debug("Window rendering complete.")

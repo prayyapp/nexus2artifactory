@@ -1,6 +1,7 @@
 from .Help import hlp
 from .SecConst import getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
 from .SecConst import permissionSet
+from .Setup import Setup
 from .Security import Security
 from .Ldap import Ldap
 from .Nexus import Nexus

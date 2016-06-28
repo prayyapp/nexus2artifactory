@@ -1,9 +1,12 @@
+import logging
 from ..core import Menu
 from . import GroupEdit
 
 class Group(Menu):
     def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate Groups")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing Group Menu.")
         self.parent = parent
         self.optmap = {}
         self.opts = [
@@ -12,8 +15,10 @@ class Group(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
+        self.log.debug("Group Menu initialized.")
 
     def initialize(self):
+        self.log.debug("Readying Group Menu for display.")
         if self.scr.nexus.security.rolesdirty == False: pass
         elif self.scr.nexus.security.roles == None:
             opt = self.mkopt('INFO', "no connected Nexus instance", None)
@@ -42,6 +47,7 @@ class Group(Menu):
                 opt['act'] = ['+', opt['alt'][0].updatemigrate]
                 self.pagedopts.append(opt)
         self.scr.nexus.security.rolesdirty = False
+        self.log.debug("Group Menu ready for display.")
 
     def collectconf(self):
         conf, groups = {}, []

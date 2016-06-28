@@ -1,9 +1,12 @@
+import logging
 from ..core import Menu
 from . import UserEdit
 
 class User(Menu):
     def __init__(self, scr, parent):
         Menu.__init__(self, scr, "Migrate Users")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing User Menu.")
         self.parent = parent
         self.pasw = self.mkopt('p', "Default Password", '|',
                                verif=self.chdefpasw)
@@ -15,8 +18,10 @@ class User(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
+        self.log.debug("User Menu initialized.")
 
     def initialize(self):
+        self.log.debug("Readying User Menu for display.")
         if self.scr.nexus.security.usersdirty == False: pass
         elif self.scr.nexus.security.users == None:
             opt = self.mkopt('INFO', "no connected Nexus instance", None)
@@ -45,6 +50,7 @@ class User(Menu):
                 opt['act'] = ['+', opt['alt'][0].updatemigrate]
                 self.pagedopts.append(opt)
         self.scr.nexus.security.usersdirty = False
+        self.log.debug("User Menu ready for display.")
 
     def collectconf(self):
         conf, users = {}, []

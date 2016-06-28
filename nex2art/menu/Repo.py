@@ -1,9 +1,12 @@
+import logging
 from ..core import Menu
 from . import RepoEdit
 
 class Repo(Menu):
     def __init__(self, scr):
         Menu.__init__(self, scr, "Migrate Repositories")
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing Repo Menu.")
         self.optmap = {}
         self.opts = [
             None,
@@ -11,8 +14,10 @@ class Repo(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
+        self.log.debug("Repo Menu initialized.")
 
     def initialize(self):
+        self.log.debug("Readying Repo Menu for display.")
         if self.scr.nexus.dirty == False: pass
         elif self.scr.nexus.repos == None:
             opt = self.mkopt('INFO', "no connected Nexus instance", None)
@@ -45,6 +50,7 @@ class Repo(Menu):
                 opt['act'] = ['+', opt['alt'][0].updatemigrate]
                 self.pagedopts.append(opt)
         self.scr.nexus.dirty = False
+        self.log.debug("Repo Menu ready for display.")
 
     def collectconf(self):
         conf, repos = {}, []

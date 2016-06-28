@@ -1,9 +1,11 @@
 import os
+import logging
 import xml.etree.ElementTree as ET
 from . import Security, Ldap
 
 class Nexus:
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.path = None
         self.repos = None
         self.repomap = None
@@ -23,7 +25,9 @@ class Nexus:
         path = os.path.abspath(path)
         caps = self.getYumCapabilities(path)
         config = os.path.join(path, 'conf', 'nexus.xml')
+        self.log.info("Reading Nexus config from %s.", config)
         if not os.path.isfile(config):
+            self.log.error("Nexus config file does not exist.")
             return "Given path is not a valid Nexus instance."
         try:
             xml = ET.parse(config).getroot()
@@ -46,7 +50,10 @@ class Nexus:
                     repodata['snapshot'] = policy.text in ('SNAPSHOT', 'MIXED')
                 repos.append(repodata)
                 repomap[repodata['id']] = repodata
-        except: return "Configuration file nexus.xml is not valid."
+            self.log.info("Successfully read Nexus config.")
+        except:
+            self.log.exception("Error reading Nexus config:")
+            return "Configuration file nexus.xml is not valid."
         repos.sort(key=lambda x: x['class'])
         self.ldap.refresh(path)
         secrtn = self.security.refresh(path)
