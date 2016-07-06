@@ -116,8 +116,9 @@ class Artifactory:
         ldapq = True
         if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
             ldapq = False
-        src = conf["Security Migration Setup"]["LDAP Migration Setup"]
-        if src["Migrate LDAP"] == False: ldapq = False
+        else:
+            src = conf["Security Migration Setup"]["LDAP Migration Setup"]
+            if src["Migrate LDAP"] == False: ldapq = False
         if ldapq: confct += 1
         self.prog.stepsmap['Repositories'][2] = repoct
         self.prog.stepsmap['Groups'][2] = grpct
