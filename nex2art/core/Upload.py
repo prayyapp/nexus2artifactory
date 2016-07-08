@@ -101,13 +101,16 @@ class Upload:
             chksumheaders['X-Checksum-Sha1'] = js['digest.sha1']
             chksumheaders['X-Checksum-Md5'] = js['digest.md5']
             chksumheaders.update(headers)
-            self.log.info("Deploying artifact checksum to %s.", puturl)
+            self.log.info("Deploying artifact checksum %s (%s) to %s.",
+                          js['digest.sha1'], js['digest.md5'], puturl)
             req = PutRequest(puturl, headers=chksumheaders)
             try: stat = urllib2.urlopen(req).getcode()
             except urllib2.HTTPError as ex:
                 if ex.code == 404:
                     self.log.info("Artifact not found, upload required.")
-                else: self.log.exception("Error deploying artifact checksum:")
+                else:
+                    msg = "Error deploying artifact checksum:\n%s"
+                    self.log.exception(msg, ex.read())
                 stat = ex.code
             except urllib2.URLError as ex:
                 self.log.exception("Error deploying artifact checksum:")
@@ -134,7 +137,7 @@ class Upload:
             req = PutRequest(url, f, artifactheaders)
             try: stat = urllib2.urlopen(req).getcode()
             except urllib2.HTTPError as ex:
-                self.log.exception("Error uploading artifact:")
+                self.log.exception("Error uploading artifact:\n%s", ex.read())
                 stat = ex.code
             except urllib2.URLError as ex:
                 self.log.exception("Error uploading artifact:")
