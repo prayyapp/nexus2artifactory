@@ -110,13 +110,13 @@ class Nexus:
     def getYumCapabilities(self, path):
         xml = os.path.join(path, 'conf', 'capabilities.xml')
         if not os.path.isfile(xml): return []
-        yumrepos = []
         root = ET.parse(xml).getroot()
-        for cap in root.find('capabilities').findall('capability'):
+        caps = root.find('capabilities')
+        if caps == None: return []
+        yumrepos = []
+        for cap in caps.findall('capability'):
             tid = cap.find('typeId').text
-            # TODO add 'yum.merge' to this list when Artifactory starts
-            # supporting virtual Yum repositories
-            if tid not in ('yum.generate', 'yum.proxy'): continue
+            if tid not in ('yum.generate', 'yum.proxy', 'yum.merge'): continue
             props = {}
             for prop in cap.find('properties').findall('property'):
                 props[prop.find('key').text] = prop.find('value').text
