@@ -5,6 +5,7 @@ import time
 import Queue
 import base64
 import logging
+import urllib
 import urllib2
 import threading
 
@@ -96,7 +97,7 @@ class Upload:
             if int(js['storageItem-modified']) < self.ts:
                 self.incFileCount(repo + ':' + js['storageItem-path'])
                 continue
-            puturl = url + repo + js['storageItem-path']
+            puturl = url + urllib.quote(repo + js['storageItem-path'])
             chksumheaders = {'X-Checksum-Deploy': 'true'}
             chksumheaders['X-Checksum-Sha1'] = js['digest.sha1']
             chksumheaders['X-Checksum-Md5'] = js['digest.md5']
