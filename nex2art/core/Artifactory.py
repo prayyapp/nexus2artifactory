@@ -95,6 +95,7 @@ class Artifactory:
         repoct, grpct, usrct, permct, confct = 0, 0, 0, 0, 0
         if "Repository Migration Setup" in conf:
             for repn, rep in conf["Repository Migration Setup"].items():
+                if not isinstance(rep, dict): continue
                 if rep['available'] != True: continue
                 if rep["Migrate This Repo"] != True: continue
                 repoct += 1
@@ -138,6 +139,7 @@ class Artifactory:
         repos = {}
         for res in result: repos[res['key']] = True
         for repn, rep in conf["Repository Migration Setup"].items():
+            if not isinstance(rep, dict): continue
             if rep['available'] != True: continue
             if rep["Migrate This Repo"] != True: continue
             self.log.info("Migrating repo %s -> %s.", repn,

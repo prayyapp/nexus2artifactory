@@ -7,9 +7,11 @@ class Repo(Menu):
         Menu.__init__(self, scr, "Migrate Repositories")
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Repo Menu.")
+        self.hashall = self.mkopt('c', "Hash All Artifacts", '+')
         self.optmap = {}
         self.opts = [
             None,
+            self.hashall,
             self.mkopt('e', "Edit Repository", '&'),
             None,
             self.mkopt('h', "Help", '?'),
@@ -61,7 +63,11 @@ class Repo(Menu):
                 conf[k] = self.optmap[k].collectconf()
             else: conf[k] = self.optmap[k]
             conf[k]['available'] = k in repos
+        conf["Hash All Artifacts"] = self.hashall['val']
         return conf
 
     def applyconf(self, conf):
+        if "Hash All Artifacts" in conf:
+            self.hashall['val'] = conf["Hash All Artifacts"]
+            del conf["Hash All Artifacts"]
         self.optmap = conf

@@ -49,6 +49,12 @@ this user to log in to Artifactory.""",
 The password, or an API key, of an administrative user on the Artifactory
 server. The tool uses this user to log in to Artifactory.""",
     # Repository Migration Setup Menu
+    "Hash All Artifacts": """
+If this is checked, all artifacts will have their checksums calculated prior to
+migrating. If unchecked, the checksums will be extracted from the Nexus metadata
+instead. This option is useful if you believe the Nexus-provided checksums to be
+incorrect. Keep in mind that this option can considerably slow the migration
+process.""",
     "Edit Repository": """
 Press 'e' followed by a number key to edit a repository migration in detail.
 Pressing the number key on its own will simply toggle whether or not the
