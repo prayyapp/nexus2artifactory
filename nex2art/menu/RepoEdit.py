@@ -23,7 +23,9 @@ class RepoEdit(Menu):
         if repo['class'] in ('local', 'remote'):
             self.opts += [
                 self.mkopt('r', "Handles Releases", '+', val=repo['release']),
-                self.mkopt('s', "Handles Snapshots", '+', val=repo['snapshot'])]
+                self.mkopt('s', "Handles Snapshots", '+', val=repo['snapshot']),
+                self.mkopt('b', "Maven Snapshot Version Behavior", '|', val=repo['behavior']),
+                self.mkopt('x', "Max Unique Snapshots", '|')]
         if repo['class'] == 'remote':
             self.opts += [
                 self.mkopt('u', "Remote URL", '|', val=repo['remote'],

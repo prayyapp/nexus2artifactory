@@ -138,6 +138,7 @@ class Artifactory:
         for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
         repos = {}
         for res in result: repos[res['key']] = True
+        defaultmaxuniquesnapshots = conf['Repository Migration Setup']["Default Max Unique Snapshots"]
         for repn, rep in conf["Repository Migration Setup"].items():
             if not isinstance(rep, dict): continue
             if rep['available'] != True: continue
@@ -157,6 +158,11 @@ class Artifactory:
                 if jsn['rclass'] == 'local':
                     jsn['handleReleases'] = rep["Handles Releases"]
                     jsn['handleSnapshots'] = rep["Handles Snapshots"]
+                    jsn['snapshotVersionBehavior'] = rep["Maven Snapshot Version Behavior"]
+                    if "Max Unique Snapshots" in rep:
+                        jsn['maxUniqueSnapshots'] = rep["Max Unique Snapshots"]
+                    else:
+                        jsn['maxUniqueSnapshots'] = defaultmaxuniquesnapshots
                 if jsn['rclass'] == 'remote':
                     jsn['handleReleases'] = rep["Handles Releases"]
                     jsn['handleSnapshots'] = rep["Handles Snapshots"]

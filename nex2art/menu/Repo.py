@@ -8,11 +8,13 @@ class Repo(Menu):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Repo Menu.")
         self.hashall = self.mkopt('c', "Hash All Artifacts", '+')
+        self.maxuniquesnapshots = self.mkopt('m', "Default Max Unique Snapshots", '|', verif=self.defchmax)
         self.optmap = {}
         self.opts = [
             None,
             self.hashall,
             self.mkopt('e', "Edit Repository", '&'),
+            self.maxuniquesnapshots,
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
@@ -64,10 +66,19 @@ class Repo(Menu):
             else: conf[k] = self.optmap[k]
             conf[k]['available'] = k in repos
         conf["Hash All Artifacts"] = self.hashall['val']
+        conf["Default Max Unique Snapshots"] = self.maxuniquesnapshots['val']
         return conf
 
     def applyconf(self, conf):
         if "Hash All Artifacts" in conf:
             self.hashall['val'] = conf["Hash All Artifacts"]
             del conf["Hash All Artifacts"]
+        if "Default Max Unique Snapshots" in conf:
+            self.maxuniquesnapshots['val'] = conf["Default Max Unique Snapshots"]
+            del conf["Default Max Unique Snapshots"]
         self.optmap = conf
+
+    def defchmax(self, newmax):
+        if newmax != None: return True
+        self.scr.msg = ('err', "Default Max Unique Snapshots must not be blank.")
+        return False

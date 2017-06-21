@@ -55,6 +55,9 @@ migrating. If unchecked, the checksums will be extracted from the Nexus metadata
 instead. This option is useful if you believe the Nexus-provided checksums to be
 incorrect. Keep in mind that this option can considerably slow the migration
 process.""",
+    "Default Max Unique Snapshots": """
+The Default Max Unique Snapshots, you can override this value by editing the
+repository and change Max Unique Snapshots in it.""",
     "Edit Repository": """
 Press 'e' followed by a number key to edit a repository migration in detail.
 Pressing the number key on its own will simply toggle whether or not the
@@ -87,6 +90,10 @@ repository's package type, but it can be set to another layout if necessary.""",
 Whether the repository handles release builds.""",
     "Handles Snapshots": """
 Whether the repository handles snapshot builds.""",
+    "Maven Snapshot Version Behavior": """
+Defines the Maven Snapshot Version Behavior (non-unique, unique or deployer).""",
+    "Max Unique Snapshots": """
+Number of retained version of unique snpashots (irrelevant when chosing non-unique above).""",
     "Remote URL": """
 The remote URL of the repository to proxy.""",
     # Security Migration Setup Menu
