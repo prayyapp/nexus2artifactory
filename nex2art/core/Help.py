@@ -91,9 +91,11 @@ Whether the repository handles release builds.""",
     "Handles Snapshots": """
 Whether the repository handles snapshot builds.""",
     "Maven Snapshot Version Behavior": """
-Defines the Maven Snapshot Version Behavior (non-unique, unique or deployer).""",
+Defines the Maven Snapshot Version Behavior (non-unique, unique or
+deployer).""",
     "Max Unique Snapshots": """
-Number of retained version of unique snpashots (irrelevant when chosing non-unique above).""",
+Number of retained versions of unique snpashots (irrelevant when choosing
+non-unique above).""",
     "Remote URL": """
 The remote URL of the repository to proxy.""",
     # Security Migration Setup Menu

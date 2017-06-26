@@ -46,7 +46,7 @@ class Nexus:
                 repodata['release'] = False
                 repodata['snapshot'] = False
                 repodata['behavior'] = 'unique'
-                repodata['maxuniquesnapshots'] = ''
+                repodata['maxuniquesnapshots'] = None
                 if policy != None:
                     repodata['release'] = policy.text in ('RELEASE', 'MIXED')
                     repodata['snapshot'] = policy.text in ('SNAPSHOT', 'MIXED')

@@ -8,13 +8,14 @@ class Repo(Menu):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Repo Menu.")
         self.hashall = self.mkopt('c', "Hash All Artifacts", '+')
-        self.maxuniquesnapshots = self.mkopt('m', "Default Max Unique Snapshots", '|', verif=self.defchmax)
+        self.max = self.mkopt('u', "Default Max Unique Snapshots", '|',
+                              verif=self.chmax)
         self.optmap = {}
         self.opts = [
             None,
+            self.max,
             self.hashall,
             self.mkopt('e', "Edit Repository", '&'),
-            self.maxuniquesnapshots,
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Back", None, hdoc=False)]
@@ -56,6 +57,13 @@ class Repo(Menu):
         self.scr.nexus.dirty = False
         self.log.debug("Repo Menu ready for display.")
 
+    def chmax(self, newmax):
+        try: maxnum = int(newmax)
+        except (TypeError, ValueError): maxnum = -1
+        if maxnum < 0:
+            self.scr.msg = ('err', "Default Max must be a nonnegative integer")
+        return maxnum >= 0
+
     def collectconf(self):
         conf, repos = {}, []
         if self.scr.nexus.repos != None:
@@ -66,7 +74,7 @@ class Repo(Menu):
             else: conf[k] = self.optmap[k]
             conf[k]['available'] = k in repos
         conf["Hash All Artifacts"] = self.hashall['val']
-        conf["Default Max Unique Snapshots"] = self.maxuniquesnapshots['val']
+        conf["Default Max Unique Snapshots"] = self.max['val']
         return conf
 
     def applyconf(self, conf):
@@ -74,11 +82,6 @@ class Repo(Menu):
             self.hashall['val'] = conf["Hash All Artifacts"]
             del conf["Hash All Artifacts"]
         if "Default Max Unique Snapshots" in conf:
-            self.maxuniquesnapshots['val'] = conf["Default Max Unique Snapshots"]
+            self.max['val'] = conf["Default Max Unique Snapshots"]
             del conf["Default Max Unique Snapshots"]
         self.optmap = conf
-
-    def defchmax(self, newmax):
-        if newmax != None: return True
-        self.scr.msg = ('err', "Default Max Unique Snapshots must not be blank.")
-        return False
