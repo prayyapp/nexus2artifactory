@@ -45,6 +45,8 @@ class Nexus:
                 if ext != None: policy = ext.find('repositoryPolicy')
                 repodata['release'] = False
                 repodata['snapshot'] = False
+                repodata['behavior'] = 'unique'
+                repodata['maxuniquesnapshots'] = None
                 if policy != None:
                     repodata['release'] = policy.text in ('RELEASE', 'MIXED')
                     repodata['snapshot'] = policy.text in ('SNAPSHOT', 'MIXED')
