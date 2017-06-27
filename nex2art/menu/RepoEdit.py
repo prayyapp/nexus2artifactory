@@ -34,7 +34,7 @@ class RepoEdit(Menu):
             self.opts += [self.behavior]
         if repo['class'] in ('local', 'remote'):
             self.opts += [
-                self.mkopt('u', "Max Unique Snapshots", '|', verif=self.chmax)]
+                self.mkopt('x', "Max Unique Snapshots", '|', verif=self.chmax)]
         if repo['class'] == 'remote':
             self.opts += [
                 self.mkopt('u', "Remote URL", '|', val=repo['remote'],
