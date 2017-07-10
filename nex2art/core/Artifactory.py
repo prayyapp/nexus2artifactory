@@ -171,6 +171,11 @@ class Artifactory:
                     jsn['repositories'] = nrepo['repos']
                 mthd = 'POST' if jsn['key'] in repos else 'PUT'
                 cfg = 'api/repositories/' + urllib.quote(jsn['key'], '')
+                if mthd == 'PUT' and jsn['rclass'] == 'virtual':
+                    try:
+                        self.dorequest(conn, 'GET', cfg, None, False)
+                        mthd = 'POST'
+                    except: pass
                 self.dorequest(conn, mthd, cfg, jsn)
             except:
                 self.log.exception("Error migrating repository %s:", repn)
@@ -371,7 +376,7 @@ class Artifactory:
         headers['Authorization'] = "Basic " + enc
         return self.url[0], self.url[1], self.url[2], headers
 
-    def dorequest(self, conndata, method, path, body=None):
+    def dorequest(self, conndata, method, path, body=None, exlog=True):
         resp, stat, msg, ctype = None, None, None, None
         headers = {}
         if isinstance(body, (dict, list, tuple)):
@@ -393,10 +398,10 @@ class Artifactory:
             stat = resp.getcode()
             ctype = resp.info().get('Content-Type', 'application/octet-stream')
         except urllib2.HTTPError as ex:
-            self.log.exception("Error making request:\n%s", ex.read())
+            if exlog: self.log.exception("Error making request:\n%s", ex.read())
             stat = ex.code
         except urllib2.URLError as ex:
-            self.log.exception("Error making request:")
+            if exlog: self.log.exception("Error making request:")
             stat = ex.reason
         if not isinstance(stat, (int, long)) or stat < 200 or stat >= 300:
             msg = "Unable to " + method + " " + path + ": " + str(stat) + "."
