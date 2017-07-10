@@ -132,18 +132,22 @@ class Upload:
     def deployArtifact(self, url, path, headers):
         stat = None
         artifactheaders = {'Content-Type': 'application/octet-stream'}
-        artifactheaders['Content-Length'] = str(os.stat(path).st_size)
-        artifactheaders.update(headers)
-        with open(path, 'r') as f:
-            self.log.info("Uploading artifact to %s.", url)
-            req = PutRequest(url, f, artifactheaders)
-            try: stat = urllib2.urlopen(req).getcode()
-            except urllib2.HTTPError as ex:
-                self.log.exception("Error uploading artifact:\n%s", ex.read())
-                stat = ex.code
-            except urllib2.URLError as ex:
-                self.log.exception("Error uploading artifact:")
-                stat = ex.reason
+        try:
+            artifactheaders['Content-Length'] = str(os.stat(path).st_size)
+            artifactheaders.update(headers)
+            with open(path, 'r') as f:
+                self.log.info("Uploading artifact to %s.", url)
+                req = PutRequest(url, f, artifactheaders)
+                try: stat = urllib2.urlopen(req).getcode()
+                except urllib2.HTTPError as ex:
+                    self.log.exception("Error uploading artifact:\n%s", ex.read())
+                    stat = ex.code
+                except urllib2.URLError as ex:
+                    self.log.exception("Error uploading artifact:")
+                    stat = ex.reason
+        except BaseException as ex:
+            self.log.exception("Error uploading artifact:")
+            stat = str(ex)
         return stat
 
     def deployString(self, url, content, headers):
