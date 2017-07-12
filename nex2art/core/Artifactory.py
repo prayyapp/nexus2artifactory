@@ -127,7 +127,6 @@ class Artifactory:
         self.prog.stepsmap['Users'][2] = usrct
         self.prog.stepsmap['Permissions'][2] = permct
         self.prog.stepsmap['Configurations'][2] = confct
-        self.prog.stepsmap['Artifacts'][2] = 1
         self.prog.refresh()
 
     def migraterepos(self, conn, conf):

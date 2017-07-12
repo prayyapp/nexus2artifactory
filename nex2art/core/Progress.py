@@ -16,7 +16,7 @@ class Progress:
         self.steps.append(["Users", 0, 0, 0, None])
         self.steps.append(["Permissions", 0, 0, 0, None])
         self.steps.append(["Configurations", 0, 0, 0, None])
-        self.steps.append(["Artifacts", 0, 0, 0, 0])
+        self.steps.append(["Artifacts", False, None, 0, 0])
         for step in self.steps: self.stepsmap[step[0]] = step
 
     def show(self, conf):
@@ -38,6 +38,9 @@ class Progress:
         mdone, mtotal, mname, mset = 0, 0, None, False
         for step in self.steps:
             n, d, t, e, a = step
+            if t == None:
+                t = 1
+                d = 1 if d else 0
             tdone += d
             ttotal += t
             terror += e
@@ -70,13 +73,16 @@ class Progress:
         name, done, total, errors, artifacts = step
         stat, color = None, None
         if errors > 0: stat, color = " ! ", 'err'
-        elif done >= total: stat, color = " + ", 'val'
-        elif done <= 0: stat, color = "   ", 'val'
+        elif done == True or done >= total: stat, color = " + ", 'val'
+        elif done == False or done <= 0: stat, color = "   ", 'val'
         else: stat, color = " ~ ", 'slp'
         unicurses.waddstr(self.scr.win, stat, self.scr.attr[color])
-        stat = name + ' '*(15 - len(name)) + str(done) + '/' + str(total)
-        if artifacts != None: stat += ", " + str(artifacts) + " Total"
-        if errors > 0: stat += ", "
+        stats = []
+        stat = name + ' '*(15 - len(name))
+        if total != None: stats.append(str(done) + '/' + str(total))
+        if artifacts != None: stats.append(str(artifacts) + " Total")
+        stat += ", ".join(stats)
+        if errors > 0 and len(stats) > 0: stat += ", "
         unicurses.waddstr(self.scr.win, stat)
         if errors > 0:
             stat = str(errors) + " Errors"

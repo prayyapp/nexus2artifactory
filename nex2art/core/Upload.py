@@ -45,7 +45,7 @@ class Upload:
         for t in threads: t.join()
         self.log.info("All artifacts successfully uploaded.")
         self.ts = newts
-        self.parent.prog.stepsmap['Artifacts'][1] = 1
+        self.parent.prog.stepsmap['Artifacts'][1] = True
 
     def getconndata(self):
         urlp = self.parent.url
