@@ -69,6 +69,7 @@ class Artifactory:
             self.disablePasswordExpire(root, ns, pexpire)
             self.dorequest(conn, 'POST', cfg, artxml)
             self.upload.upload(conf)
+            self.migratereposfinalize(conn, conf)
             return True
         except MigrationError as ex:
             self.log.exception("Migration Error:")
@@ -92,13 +93,16 @@ class Artifactory:
         enabled.text = cfg
 
     def initprogress(self, conf, secconf):
-        repoct, grpct, usrct, permct, confct = 0, 0, 0, 0, 0
+        repoct, grpct, usrct, permct, confct, finalct = 0, 0, 0, 0, 0, 0
         if "Repository Migration Setup" in conf:
+            nrepos = {}
+            for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
             for repn, rep in conf["Repository Migration Setup"].items():
                 if not isinstance(rep, dict): continue
                 if rep['available'] != True: continue
                 if rep["Migrate This Repo"] != True: continue
                 repoct += 1
+                if nrepos[repn]['class'] in ('local', 'remote'): finalct += 1
         if "Groups Migration Setup" in secconf:
             for grpn, grp in secconf['Groups Migration Setup'].items():
                 if grp['available'] != True: continue
@@ -123,6 +127,7 @@ class Artifactory:
             if src["Migrate LDAP"] == False: ldapq = False
         if ldapq: confct += 1
         self.prog.stepsmap['Repositories'][2] = repoct
+        self.prog.stepsmap['Finalizing'][2] = finalct
         self.prog.stepsmap['Groups'][2] = grpct
         self.prog.stepsmap['Users'][2] = usrct
         self.prog.stepsmap['Permissions'][2] = permct
@@ -154,17 +159,17 @@ class Artifactory:
                 jsn['packageType'] = nrepo['type']
                 jsn['description'] = rep["Repo Description"]
                 jsn['repoLayoutRef'] = rep["Repo Layout"]
-                if jsn['rclass'] == 'local':
-                    jsn['handleReleases'] = rep["Handles Releases"]
-                    jsn['handleSnapshots'] = rep["Handles Snapshots"]
-                    jsn['snapshotVersionBehavior'] = rep["Maven Snapshot Version Behavior"]
+                if jsn['rclass'] == 'local' or jsn['rclass'] == 'remote':
+                    jsn['handleReleases'] = True
+                    jsn['handleSnapshots'] = True
+                    jsn['suppressPomConsistencyChecks'] = True
                     if "Max Unique Snapshots" in rep:
                         jsn['maxUniqueSnapshots'] = rep["Max Unique Snapshots"]
                     else:
                         jsn['maxUniqueSnapshots'] = defaultmaxuniquesnapshots
+                if jsn['rclass'] == 'local':
+                    jsn['snapshotVersionBehavior'] = rep["Maven Snapshot Version Behavior"]
                 if jsn['rclass'] == 'remote':
-                    jsn['handleReleases'] = rep["Handles Releases"]
-                    jsn['handleSnapshots'] = rep["Handles Snapshots"]
                     jsn['url'] = rep["Remote URL"]
                 if jsn['rclass'] == 'virtual':
                     jsn['repositories'] = nrepo['repos']
@@ -180,6 +185,31 @@ class Artifactory:
                 self.log.exception("Error migrating repository %s:", repn)
                 self.prog.stepsmap['Repositories'][3] += 1
             finally: self.prog.stepsmap['Repositories'][1] += 1
+
+    def migratereposfinalize(self, conn, conf):
+        self.log.info("Finalizing repository migrations.")
+        nrepos = {}
+        for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
+        for repn, rep in conf["Repository Migration Setup"].items():
+            if not isinstance(rep, dict): continue
+            if rep['available'] != True: continue
+            if rep["Migrate This Repo"] != True: continue
+            if not (nrepos[repn]['class'] in ('local', 'remote')): continue
+            self.log.info("Finalizing migration for repo %s -> %s.", repn,
+                          rep["Repo Name (Artifactory)"])
+            self.prog.current = repn + ' -> ' + rep["Repo Name (Artifactory)"]
+            self.prog.refresh()
+            try:
+                jsn = {}
+                jsn['handleReleases'] = rep["Handles Releases"]
+                jsn['handleSnapshots'] = rep["Handles Snapshots"]
+                jsn['suppressPomConsistencyChecks'] = rep["Suppresses Pom Consistency Checks"]
+                cfg = 'api/repositories/' + urllib.quote(rep["Repo Name (Artifactory)"], '')
+                self.dorequest(conn, 'POST', cfg, jsn)
+            except:
+                self.log.exception("Error finalizing migration for repository %s:", repn)
+                self.prog.stepsmap['Finalizing'][3] += 1
+            finally: self.prog.stepsmap['Finalizing'][1] += 1
 
     def migrateusers(self, conn, conf):
         self.log.info("Migrating users.")

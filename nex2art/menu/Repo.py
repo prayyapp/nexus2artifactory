@@ -7,9 +7,9 @@ class Repo(Menu):
         Menu.__init__(self, scr, "Migrate Repositories")
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Repo Menu.")
-        self.hashall = self.mkopt('c', "Hash All Artifacts", '+')
+        self.hashall = self.mkopt('c', "Hash All Artifacts", '+', val=False)
         self.max = self.mkopt('x', "Default Max Unique Snapshots", '|',
-                              verif=self.chmax)
+                              val="0", verif=self.chmax)
         self.optmap = {}
         self.opts = [
             None,

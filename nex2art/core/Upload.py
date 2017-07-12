@@ -194,15 +194,19 @@ class Upload:
                     store = path[path.rfind("/", 0, i):]
                     break
         if sha1 == None:
-            h = hashlib.sha1()
-            with open(path, 'rb') as f:
-                for chunk in iter(lambda: f.read(4096), b''): h.update(chunk)
-            sha1 = h.hexdigest()
+            try:
+                h = hashlib.sha1()
+                with open(path, 'rb') as f:
+                    for chunk in iter(lambda: f.read(4096), b''): h.update(chunk)
+                sha1 = h.hexdigest()
+            except: pass
         if md5 == None:
-            h = hashlib.md5()
-            with open(path, 'rb') as f:
-                for chunk in iter(lambda: f.read(4096), b''): h.update(chunk)
-            md5 = h.hexdigest()
+            try:
+                h = hashlib.md5()
+                with open(path, 'rb') as f:
+                    for chunk in iter(lambda: f.read(4096), b''): h.update(chunk)
+                md5 = h.hexdigest()
+            except: pass
         return modif, store, sha1, md5
 
     def incFileCount(self, fname, error=False):

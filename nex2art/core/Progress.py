@@ -17,6 +17,7 @@ class Progress:
         self.steps.append(["Permissions", 0, 0, 0, None])
         self.steps.append(["Configurations", 0, 0, 0, None])
         self.steps.append(["Artifacts", False, None, 0, 0])
+        self.steps.append(["Finalizing", 0, 0, 0, None])
         for step in self.steps: self.stepsmap[step[0]] = step
 
     def show(self, conf):

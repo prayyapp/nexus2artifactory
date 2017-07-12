@@ -90,12 +90,15 @@ repository's package type, but it can be set to another layout if necessary.""",
 Whether the repository handles release builds.""",
     "Handles Snapshots": """
 Whether the repository handles snapshot builds.""",
+    "Suppresses Pom Consistency Checks": """
+Whether the repository should suppress checking if artifacts are consistent with
+their pom files.""",
     "Maven Snapshot Version Behavior": """
 Defines the Maven Snapshot Version Behavior (non-unique, unique or
 deployer).""",
     "Max Unique Snapshots": """
 Number of retained versions of unique snpashots (irrelevant when choosing
-non-unique above).""",
+non-unique version behavior).""",
     "Remote URL": """
 The remote URL of the repository to proxy.""",
     # Security Migration Setup Menu

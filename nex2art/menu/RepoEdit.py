@@ -30,6 +30,7 @@ class RepoEdit(Menu):
             self.opts += [
                 self.mkopt('r', "Handles Releases", '+', val=repo['release']),
                 self.mkopt('s', "Handles Snapshots", '+', val=repo['snapshot']),
+                self.mkopt('p', "Suppresses Pom Consistency Checks", '+', val=False),
                 self.mkopt('x', "Max Unique Snapshots", '|', verif=self.chmax)]
         if repo['class'] == 'local':
             self.opts += [self.behavior]
