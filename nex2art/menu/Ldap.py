@@ -10,9 +10,10 @@ class Ldap(Menu):
         self.migrate = self.mkopt('m', "Migrate LDAP", ['+', self.updateparent],
                                   val=True)
         self.useropt = self.mkopt('INFO', "LDAP Username", None)
+        self.paswopt = self.mkopt('l', "LDAP Password", '|', verif=self.change)
         self.manageropts = [
             self.useropt,
-            self.mkopt('l', "LDAP Password", '*', verif=self.change)]
+            self.paswopt]
         self.alwaysopts = [
             self.mkopt('s', "LDAP Setting Name", '|',
                        val='migratedNexusSetting', verif=self.change),
@@ -35,6 +36,8 @@ class Ldap(Menu):
 
     def initialize(self):
         ldap = self.scr.nexus.ldap.ldap
+        if ldap != None and 'managerPassword' in ldap:
+            self.paswopt['val'] = ldap['managerPassword']
         if ldap != None and 'managerDn' in ldap:
             self.opts = self.manageropts + self.alwaysopts
             self.useropt['val'] = ldap['managerDn']

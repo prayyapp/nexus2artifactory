@@ -1,4 +1,6 @@
 import os
+import base64
+import hashlib
 import logging
 import xml.etree.ElementTree as ET
 
@@ -20,6 +22,28 @@ class Ldap:
             except:
                 self.log.exception("Error reading LDAP config:")
         else: self.log.info("LDAP config file does not exist, skipping.")
+
+    def decodePassword(self, pasw):
+        bs = base64.b64decode(pasw)
+        digest = hashlib.sha1()
+        digest.update(chr(1)*64 + bs[1:9]*8 + '\0C\0M\0M\0D\0w\0o\0V\0\0'*4)
+        accum = digest.digest()
+        for _ in xrange(22):
+            digest = hashlib.sha1()
+            digest.update(accum)
+            accum = digest.digest()
+        j, out = 0, []
+        S = range(256)
+        for i in xrange(256):
+            j = (j + S[i] + ord(accum[i % 16])) % 256
+            S[i], S[j] = S[j], S[i]
+        i = j = 0
+        for char in bs[9:]:
+            i = (i + 1) % 256
+            j = (j + S[i]) % 256
+            S[i], S[j] = S[j], S[i]
+            out.append(chr(ord(char) ^ S[(S[i] + S[j]) % 256]))
+        return ''.join(out)
 
     def getldap(self, ldapxml):
         tmpdata, ldap = {}, {}
@@ -49,6 +73,11 @@ class Ldap:
         ldap['emailAttribute'] = tmpdata['emailAddressAttribute']
         if 'systemUsername' in tmpdata:
             ldap['managerDn'] = tmpdata['systemUsername']
+        if 'systemPassword' in tmpdata:
+            try:
+                manpass = self.decodePassword(tmpdata['systemPassword'])
+                ldap['managerPassword'] = manpass
+            except: pass
         if 'userBaseDn' in tmpdata:
             ldap['searchBase'] = tmpdata['userBaseDn']
         if 'userSubtree' in tmpdata:
