@@ -63,7 +63,10 @@ class Security:
             target = {'patterns': [], 'defincpat': [], 'defexcpat': []}
             target['name'] = targetxml.find('id').text
             target['ptype'] = targetxml.find('contentClass').text
-            for patxml in targetxml.find('patterns').findall('pattern'):
+            xmlpatterns = targetxml.find('patterns')
+            if xmlpatterns == None: xmlpatterns = []
+            else: xmlpatterns = xmlpatterns.findall('pattern')
+            for patxml in xmlpatterns:
                 pattern = patxml.text
                 target['patterns'].append(pattern)
                 if pattern == ".*":
@@ -81,10 +84,11 @@ class Security:
 
     def getusers(self, xml):
         users = {}
-        if xml.find('users') == None:
+        xmlusers = xml.find('users')
+        if xmlusers == None:
             self.users = {}
             return
-        for userxml in xml.find('users').findall('user'):
+        for userxml in xmlusers.findall('user'):
             user = {}
             user['username'] = userxml.find('id').text
             user['email'] = userxml.find('email').text
@@ -99,7 +103,10 @@ class Security:
             user['realm'] = mapxml.find('source').text.lower()
             if user['realm'] == 'default': user['realm'] = 'internal'
             user['roles'] = []
-            for rolexml in mapxml.find('roles').findall('role'):
+            xmlroles = mapxml.find('roles')
+            if xmlroles == None: xmlroles = []
+            else: xmlroles = xmlroles.findall('role')
+            for rolexml in xmlroles:
                 if rolexml.text in self.allroles:
                     user['roles'].append(self.allroles[rolexml.text])
             users[user['username']] = user
@@ -142,34 +149,41 @@ class Security:
 
     def getroles(self, xml):
         roles = {}
-        if xml.find('roles') == None:
+        xmlroles = xml.find('roles')
+        if xmlroles == None:
             self.roles = {}
             return
-        for rolexml in xml.find('roles').findall('role'):
+        for rolexml in xmlroles.findall('role'):
             role = {'privileges': [], 'roles': [], 'admin': False}
             role['groupName'] = rolexml.find('id').text
             if rolexml.find('description') != None:
                 role['description'] = rolexml.find('description').text
             else: role['description'] = ''
-            if rolexml.find('privileges') != None:
-                for privxml in rolexml.find('privileges').findall('privilege'):
+            xmlprivileges = rolexml.find('privileges')
+            if xmlprivileges != None:
+                for privxml in xmlprivileges.findall('privilege'):
                     if privxml.text in self.allprivmap:
                         role['privileges'].append(self.allprivmap[privxml.text])
-            if rolexml.find('roles') != None:
-                for srolexml in rolexml.find('roles').findall('role'):
+            xmlprivroles = rolexml.find('roles')
+            if xmlprivroles != None:
+                for srolexml in xmlprivroles.findall('role'):
                     role['roles'].append(srolexml.text)
             roles[role['groupName']] = role
         self.roles = roles
 
     def getprivileges(self, xml):
         privs, privmap = {}, {}
-        if xml.find('privileges') == None:
+        xmlprivileges = xml.find('privileges')
+        if xmlprivileges == None:
             self.privs = {}
             self.privmap = {}
             return
-        for privxml in xml.find('privileges').findall('privilege'):
+        for privxml in xmlprivileges.findall('privilege'):
             priv, privtmp, privref = None, {}, {}
-            for propxml in privxml.find('properties').findall('property'):
+            xmlproperties = privxml.find('properties')
+            if xmlproperties == None: xmlproperties = []
+            else: xmlproperties = xmlproperties.findall('property')
+            for propxml in xmlproperties:
                 privtmp[propxml.find('key').text] = propxml.find('value').text
             name, method = privxml.find('name').text, privtmp['method']
             mthdstrs = method.split(',')

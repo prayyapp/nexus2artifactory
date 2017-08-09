@@ -32,7 +32,10 @@ class Nexus:
         try:
             xml = ET.parse(config).getroot()
             self.security.gettargets(xml)
-            for repo in xml.find('repositories').findall('repository'):
+            xmlrepos = xml.find('repositories')
+            if xmlrepos == None: xmlrepos = []
+            else: xmlrepos = xmlrepos.findall('repository')
+            for repo in xmlrepos:
                 repodata = {}
                 repodata['id'] = repo.find('id').text
                 repodata['desc'] = repo.find('name').text
@@ -120,7 +123,10 @@ class Nexus:
             tid = cap.find('typeId').text
             if tid not in ('yum.generate', 'yum.proxy', 'yum.merge'): continue
             props = {}
-            for prop in cap.find('properties').findall('property'):
+            xmlprops = cap.find('properties')
+            if xmlprops == None: xmlprops = []
+            else: xmlprops = xmlprops.findall('property')
+            for prop in xmlprops:
                 props[prop.find('key').text] = prop.find('value').text
             yumrepos.append(props['repository'])
         return yumrepos
