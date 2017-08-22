@@ -1,3 +1,4 @@
+import ssl
 import base64
 import logging
 import urllib2
@@ -53,7 +54,12 @@ class Setup(Menu):
             self.log.info("Sending request to %s.", nurl)
             try:
                 req = urllib2.Request(nurl, None, headers)
-                resp = urllib2.urlopen(req)
+                if self.scr.sslnoverify:
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    resp = urllib2.urlopen(req, context=ctx)
+                else: resp = urllib2.urlopen(req)
                 stat = resp.getcode()
             except urllib2.HTTPError as ex:
                 msg = "Error connecting to Artifactory:\n%s"

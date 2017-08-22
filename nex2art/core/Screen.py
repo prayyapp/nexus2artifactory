@@ -1,3 +1,4 @@
+import sys
 import logging
 import textwrap
 import unicurses
@@ -12,9 +13,10 @@ class Screen:
     # this, the window is framed. The main menu is then displayed. This
     # constructor takes a parameter 'screen', which is the window representing
     # the entire available screen.
-    def __init__(self, screen):
+    def __init__(self, screen, args):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing curses screen.")
+        self.sslnoverify = sys.version_info >= (2, 7, 9) and args.ssl_no_verify
         self.msg = None
         self.screen = screen
         self.mainmenu = None

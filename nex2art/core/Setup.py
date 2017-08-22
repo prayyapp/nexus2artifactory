@@ -40,9 +40,12 @@ class Setup:
         help = [
             "Migrate Sonatype Nexus instances to JFrog Artifactory.",
             "the file to use for logging (default: don't write logs)",
-            "the threshold to use for the logging level, if logs are written"]
+            "the threshold to use for the logging level, if logs are written",
+            "whether to disable ssl verification (e.g. for self-signed certs)"]
         chcs = 'error', 'warning', 'info', 'debug'
         parser = argparse.ArgumentParser(description=help[0])
         parser.add_argument('-l', '--log-file', help=help[1])
         parser.add_argument('-v', '--log-level', choices=chcs, help=help[2])
+        parser.add_argument('-s', '--ssl-no-verify',
+                            action='store_true', help=help[3])
         return parser.parse_args()

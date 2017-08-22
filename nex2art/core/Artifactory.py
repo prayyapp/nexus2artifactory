@@ -1,5 +1,6 @@
 import os
 import re
+import ssl
 import sys
 import json
 import base64
@@ -423,7 +424,12 @@ class Artifactory:
         req = MethodRequest(url, body, headers, method=method)
         self.log.info("Sending %s request to %s.", method, url)
         try:
-            resp = urllib2.urlopen(req)
+            if self.scr.sslnoverify:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                resp = urllib2.urlopen(req, context=ctx)
+            else: resp = urllib2.urlopen(req)
             stat = resp.getcode()
             ctype = resp.info().get('Content-Type', 'application/octet-stream')
         except urllib2.HTTPError as ex:

@@ -1,5 +1,6 @@
 import os
 import re
+import ssl
 import json
 import time
 import Queue
@@ -108,7 +109,13 @@ class Upload:
             self.log.info("Deploying artifact checksum %s (%s) to %s.",
                           sha1, md5, puturl)
             req = PutRequest(puturl, headers=chksumheaders)
-            try: stat = urllib2.urlopen(req).getcode()
+            try:
+                if self.scr.sslnoverify:
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    stat = urllib2.urlopen(req, context=ctx).getcode()
+                else: stat = urllib2.urlopen(req).getcode()
             except urllib2.HTTPError as ex:
                 if ex.code == 404:
                     self.log.info("Artifact not found, upload required.")
@@ -138,7 +145,13 @@ class Upload:
             with open(path, 'r') as f:
                 self.log.info("Uploading artifact to %s.", url)
                 req = PutRequest(url, f, artifactheaders)
-                try: stat = urllib2.urlopen(req).getcode()
+                try:
+                    if self.scr.sslnoverify:
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                        stat = urllib2.urlopen(req, context=ctx).getcode()
+                    else: stat = urllib2.urlopen(req).getcode()
                 except urllib2.HTTPError as ex:
                     self.log.exception("Error uploading artifact:\n%s", ex.read())
                     stat = ex.code
@@ -157,7 +170,13 @@ class Upload:
         artifactheaders.update(headers)
         self.log.info("Uploading artifact to %s.", url)
         req = PutRequest(url, content, artifactheaders)
-        try: stat = urllib2.urlopen(req).getcode()
+        try:
+            if self.scr.sslnoverify:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                stat = urllib2.urlopen(req, context=ctx).getcode()
+            else: stat = urllib2.urlopen(req).getcode()
         except urllib2.HTTPError as ex:
             self.log.exception("Error uploading artifact:\n%s", ex.read())
             stat = ex.code

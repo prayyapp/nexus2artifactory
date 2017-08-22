@@ -19,7 +19,7 @@ if __name__ == '__main__':
         unicurses.cbreak()
         try: unicurses.start_color()
         except: pass
-        scr = Screen(stdscr)
+        scr = Screen(stdscr, setup.args)
         saf = Safety(scr)
         win = Main(scr)
         scr.render()
