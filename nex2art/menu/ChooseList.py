@@ -1,9 +1,9 @@
 from ..core import Menu
 
 class ChooseList(Menu):
-    def __init__(self, scr, typ, tform, opts):
-        Menu.__init__(self, scr, "Choose " + typ)
-        self.choice = None
+    def __init__(self, scr, path, typ, tform, opts):
+        self.leaf = True
+        Menu.__init__(self, scr, path, "Choose " + typ)
         self.pagedopts = []
         for opt in opts:
             popt = self.mkopt(None, tform(opt), [self.setchoice(opt), None])
@@ -14,5 +14,5 @@ class ChooseList(Menu):
             self.mkopt('q', "Back", None, hdoc=False)]
 
     def setchoice(self, opt):
-        def f(_): self.choice = opt
+        def f(_): self.option['val'] = opt
         return f

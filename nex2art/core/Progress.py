@@ -1,7 +1,7 @@
 import time
 import unicurses
 
-class Progress:
+class Progress(object):
     def __init__(self, scr):
         self.scr = scr
         self.current = None

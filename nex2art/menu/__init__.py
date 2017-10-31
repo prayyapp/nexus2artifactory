@@ -4,6 +4,7 @@ from .RepoEdit import RepoEdit
 from .Repo import Repo
 from .ItemListEdit import ItemListEdit
 from .PrivMethodEdit import PrivMethodEdit
+from .PrivMapEdit import PrivMapEdit
 from .UserEdit import UserEdit
 from .User import User
 from .GroupEdit import GroupEdit

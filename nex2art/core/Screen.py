@@ -2,12 +2,12 @@ import sys
 import logging
 import textwrap
 import unicurses
-from . import Nexus, Artifactory
+from . import Nexus, Artifactory, Validate, DataTree, Format
 
 # The main class for the migration tool. Initializes unicurses, keeps track of
 # windows and text attributes, and is in charge of redrawing the window when it
 # gets resized.
-class Screen:
+class Screen(object):
     # Initialize unicurses. The window is a fixed 24 by 80 characters, which is
     # the standard VT100 screen size. If the available screen dimensions exceed
     # this, the window is framed. The main menu is then displayed. This
@@ -16,11 +16,14 @@ class Screen:
     def __init__(self, screen, args):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing curses screen.")
+        self.ctrlchars = (unicurses.KEY_RESIZE, unicurses.KEY_ENTER, ord('\n'), ord('\x1b'))
         self.sslnoverify = sys.version_info >= (2, 7, 9) and args.ssl_no_verify
         self.msg = None
         self.screen = screen
-        self.mainmenu = None
-        self.oldstate = None
+        self.state = DataTree(self, {})
+        self.oldstate = DataTree(self, {})
+        self.validate = Validate(self)
+        self.format = Format(self)
         self.h, self.w = 22, 78
         self.nexus = Nexus()
         self.artifactory = Artifactory(self)
@@ -33,7 +36,9 @@ class Screen:
         self.log.debug("Curses screen initialized.")
 
     def modified(self):
-        return self.mainmenu.collectconf() != self.oldstate
+        self.state.prune()
+        self.oldstate.prune()
+        return self.state != self.oldstate
 
     # Initialize the text attributes which will be used by this tool. Most of
     # these will be bold and some color.
@@ -81,15 +86,18 @@ class Screen:
         else: return encch
 
     # A wrapper for window.getch(). The parameter 'win' is the window to getch
-    # from. See the render() function for details on the parameter 'etc'. This
-    # function exists because unicurses notifies the application of a screen
-    # resize by buffering a character unicurses.KEY_RESIZE in the input stream.
-    # This wrapper filters out these resize events, and handles them using the
-    # render() function.
-    def getch(self, win, etc=None):
+    # from. See the render() function for details on the parameter 'etc'. The
+    # parameter 'redact' should be true when input should not be written to the
+    # log (eg when the user is typing a password). This function exists because
+    # unicurses notifies the application of a screen resize by buffering a
+    # character unicurses.KEY_RESIZE in the input stream. This wrapper filters
+    # out these resize events, and handles them using the render() function.
+    def getch(self, win, etc=None, redact=False):
         while True:
             ch = unicurses.wgetch(win)
-            self.log.debug("Key '%s' pressed.", self.showchar(ch))
+            if redact and ch not in self.ctrlchars:
+                self.log.debug("Key '*' pressed.")
+            else: self.log.debug("Key '%s' pressed.", self.showchar(ch))
             if ch == unicurses.KEY_RESIZE:
                 self.log.debug("Screen resize detected.")
                 self.render(etc)

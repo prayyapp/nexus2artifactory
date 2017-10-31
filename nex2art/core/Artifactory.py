@@ -1,7 +1,5 @@
-import os
 import re
 import ssl
-import sys
 import json
 import base64
 import logging
@@ -9,7 +7,6 @@ import urllib
 import urllib2
 import urlparse
 import StringIO
-import subprocess
 import xml.etree.ElementTree as ET
 from . import Upload
 
@@ -29,7 +26,7 @@ class MigrationError(Exception):
     def __init__(self, value):
         self.value = value
 
-class Artifactory:
+class Artifactory(object):
     def __init__(self, scr):
         self.log = logging.getLogger(__name__)
         self.scr = scr
@@ -125,7 +122,8 @@ class Artifactory:
             ldapq = False
         else:
             src = conf["Security Migration Setup"]["LDAP Migration Setup"]
-            if src["Migrate LDAP"] == False: ldapq = False
+            if src['available'] != True: ldapq = False
+            if src["Migrate LDAP"] != True: ldapq = False
         if ldapq: confct += 1
         self.prog.stepsmap['Repositories'][2] = repoct
         self.prog.stepsmap['Finalizing'][2] = finalct
@@ -164,7 +162,7 @@ class Artifactory:
                     jsn['handleReleases'] = True
                     jsn['handleSnapshots'] = True
                     jsn['suppressPomConsistencyChecks'] = True
-                    if "Max Unique Snapshots" in rep:
+                    if "Max Unique Snapshots" in rep and rep["Max Unique Snapshots"] != None:
                         jsn['maxUniqueSnapshots'] = rep["Max Unique Snapshots"]
                     else:
                         jsn['maxUniqueSnapshots'] = defaultmaxuniquesnapshots
@@ -233,7 +231,7 @@ class Artifactory:
                 jsn = {}
                 jsn['name'] = user["User Name (Artifactory)"]
                 jsn['email'] = user["Email Address"]
-                if "Password" in user:
+                if "Password" in user and user["Password"] != None:
                     jsn['password'] = user["Password"]
                 else:
                     jsn['password'] = defaultpasw
@@ -333,7 +331,8 @@ class Artifactory:
         if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
             return
         src = conf["Security Migration Setup"]["LDAP Migration Setup"]
-        if src["Migrate LDAP"] == False: return
+        if src['available'] != True: return
+        if src["Migrate LDAP"] != True: return
         self.log.info("Migrating LDAP configuration.")
         self.prog.current = "LDAP"
         self.prog.refresh()

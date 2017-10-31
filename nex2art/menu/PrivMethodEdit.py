@@ -1,20 +1,15 @@
 from ..core import Menu
 
 class PrivMethodEdit(Menu):
-    def __init__(self, scr, parent):
-        self.parent = parent
+    def __init__(self, scr, path):
+        self.leaf = True
         self.skip = False
-        Menu.__init__(self, scr, "Choose Methods")
-        self.read = self.mkopt('r', "Read Permissions",
-                               ['+', self.updateparent])
-        self.create = self.mkopt('w', "Create Permissions",
-                                 ['+', self.updateparent])
-        self.delete = self.mkopt('d', "Delete Permissions",
-                                 ['+', self.updateparent])
-        self.annotate = self.mkopt('n', "Annotate Permissions",
-                                   ['+', self.updateparent])
-        self.manage = self.mkopt('m', "Manage Permissions",
-                                 ['+', self.updateparent])
+        Menu.__init__(self, scr, path, "Choose Methods")
+        self.read = self.mkopt('r', "Read Permissions", ['+', self.updateparent])
+        self.create = self.mkopt('w', "Create Permissions", ['+', self.updateparent])
+        self.delete = self.mkopt('d', "Delete Permissions", ['+', self.updateparent])
+        self.annotate = self.mkopt('n', "Annotate Permissions", ['+', self.updateparent])
+        self.manage = self.mkopt('m', "Manage Permissions", ['+', self.updateparent])
         self.opts = [
             self.read,
             self.create,
@@ -36,16 +31,16 @@ class PrivMethodEdit(Menu):
         if self.delete['val']: methodstr += 'd'
         if self.annotate['val']: methodstr += 'n'
         if self.manage['val']: methodstr += 'm'
-        self.parent['val'] = methodstr if len(methodstr) > 0 else None
+        if len(methodstr) == 0:
+            msg = "At least one permission method must be selected."
+            self.scr.msg = ('err', msg)
+            return False
+        self.option['val'] = methodstr
 
     def initialize(self):
-        val = self.parent['val']
+        val = self.option['val']
         self.read['val'] = val != None and 'r' in val
         self.create['val'] = val != None and 'w' in val
         self.delete['val'] = val != None and 'd' in val
         self.annotate['val'] = val != None and 'n' in val
         self.manage['val'] = val != None and 'm' in val
-
-    def applyconf(self, conf):
-        Menu.applyconf(self, conf)
-        self.updateparent()

@@ -18,7 +18,7 @@ class PutRequest(urllib2.Request):
     def get_method(self, *args, **kwargs):
         return 'PUT'
 
-class Upload:
+class Upload(object):
     def __init__(self, scr, parent):
         self.log = logging.getLogger(__name__)
         self.scr = scr

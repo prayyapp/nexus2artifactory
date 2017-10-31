@@ -1,5 +1,6 @@
 import unicurses
 from . import hlp
+from . import Option
 
 # The base menu class. A menu consists of a list of options, each of which can
 # be accessed by pressing an associated key on the keyboard. Each option may
@@ -7,13 +8,15 @@ from . import hlp
 # option's key is pressed, it may have a variety of effects, such as editing a
 # value, producing arbitrary side effects, opening the contextual help system,
 # exiting the menu, or opening a child menu.
-class Menu:
+class Menu(object):
     # Initialize the menu. The parameter 'scr' is the Screen object to use, to
     # access shared resources such as the unicurses windows and text attributes.
     # The parameter 'title' is the title of the menu, which is displayed in the
     # top right corner of the window.
-    def __init__(self, scr, title):
+    def __init__(self, scr, path, title):
+        self.option = None
         self.scr = scr
+        self.path = path
         self.pagedopts = []
         self.title = title
         self.motnopts = [
@@ -31,90 +34,55 @@ class Menu:
     # - 'act': action or list of actions that should be taken when this option
     #   is accessed
     # - 'val': initial value this option should be set to
-    # - 'verif': verification function that should be run on the value when it
-    #   changes
     # - 'alt': action or list of actions that should be taken when this option
     #   is accessed via an alternative action keypress
     # - 'hdoc': documentation string to print when this option is selected by
     #   the contextual help system (or the value False if this option should
     #   instead exit the contextual help system)
-    def mkopt(self, key, text, act, val=None, verif=None, alt=None, save=True,
-              hdoc=None):
+    def mkopt(self, key, text, act,
+              val=None, alt=None, save=None, hdoc=None, path=None):
         if hdoc == None and text in hlp: hdoc = hlp[text]
         if isinstance(hdoc, basestring):
             hdoc = self.scr.wrap.fill(' '.join(hdoc.split()))
         if not isinstance(act, list): act = [act]
         if not isinstance(alt, list): alt = [alt]
-        return {'key': key, 'val': val, 'text': text, 'act': act, 'help': hdoc,
-                'alt': alt, 'stat': True, 'save': save, 'verif': verif,
-                'wait': False}
+        mypath, realpath, shouldsave, control = None, None, True, False
+        if path != None: mypath = path
+        if self.path != None:
+            realpath = self.path[:]
+            realpath.append(text)
+            if mypath == None: mypath = realpath
+        if key in ('<-', '->', 'INFO') or mypath == None: shouldsave = False
+        if key in ('<-', '->') or mypath == None: control = True
+        if None in act:
+            shouldsave = False
+            if key != 'INFO': control = True
+        menus = []
+        for axt in act, alt:
+            for n, x in enumerate(axt):
+                if isinstance(x, dict) and 'class' in x:
+                    vpath = None
+                    if self.path != None:
+                        vpath = self.path[:]
+                        vpath.append(text)
+                    axt[n] = x['class'](self.scr, vpath, *x['args'], **x['kwargs'])
+                y = axt[n]
+                if isinstance(y, Menu):
+                    shouldsave = False
+                    menus.append(y)
+                if y in ('?', '&'): shouldsave, control = False, True
+        if save == True: control = False
+        if save == None: save = shouldsave
+        vals = {'key': key, 'val': val, 'text': text, 'act': act, 'help': hdoc,
+                'alt': alt, 'stat': True, 'save': save, 'wait': False}
+        if hasattr(self, 'leaf') and self.leaf == True: control = True
+        if control: vals['save'], opt = False, vals
+        else: opt = Option(self.scr, vals, mypath, realpath, len(menus) > 0)
+        for menu in menus: menu.option = opt
+        return opt
 
-    # Verify all data in this menu. This function recursively calls verify() for
-    # child menus as well. This is designed to behave as a full subtree refresh.
-    def verify(self):
-        status = True
-        if hasattr(self, 'initialize'): self.initialize()
-        for opt in self.pagedopts + self.opts:
-            if opt == None: continue
-            act = None
-            for x in opt['act'] + opt['alt']:
-                if hasattr(x, 'verify'):
-                    act = x
-                    break
-            if opt['verif'] != None:
-                stat = opt['verif'](opt['val'])
-                if stat != None: opt['stat'] = stat
-            elif act != None:
-                stat = act.verify()
-                if stat != None: opt['stat'] = stat
-            if opt['stat'] == False: status = False
-        return status
-
-    # Set the status of this menu based on the statuses of its options. This
-    # allows a menu to show at a glance whether there are failing verifications
-    # in any of its child menus.
-    def status(self):
-        for opt in self.pagedopts + self.opts:
-            if opt == None: continue
-            if opt['stat'] == False: return False
-        return True
-
-    # Collect all values into a simple dictionary tree. This allows the
-    # configuration to be serialized and exported.
-    def collectconf(self):
-        conf = {}
-        for opt in self.pagedopts + self.opts:
-            if opt == None: continue
-            if opt['save'] == False: continue
-            act = None
-            for x in opt['act'] + opt['alt']:
-                if hasattr(x, 'collectconf'):
-                    act = x
-                    break
-            if act != None:
-                tmp = act.collectconf()
-                if tmp != None and len(tmp) > 0:
-                    conf[opt['text']] = tmp
-                    continue
-            if opt['key'] != 'INFO' and opt['val'] != None:
-                conf[opt['text']] = opt['val']
-        return conf
-
-    # Given a simple dictionary tree of values 'conf', apply all values to the
-    # internal data structure. This allows the configuration to be imported and
-    # unserialized.
-    def applyconf(self, conf):
-        for opt in self.pagedopts + self.opts:
-            if opt == None: continue
-            if opt['save'] and opt['key'] != 'INFO': opt['val'] = None
-            act = None
-            for x in opt['act'] + opt['alt']:
-                if hasattr(x, 'applyconf'):
-                    act = x
-                    break
-            if act != None:
-                act.applyconf(conf[opt['text']] if opt['text'] in conf else {})
-            elif opt['text'] in conf: opt['val'] = conf[opt['text']]
+    def submenu(self, cls, *args, **kwargs):
+        return {'class': cls, 'args': args, 'kwargs': kwargs}
 
     # This function allows values that are longer than 80 characters to be
     # displayed next to an option. If printing a value would print past the end
@@ -160,12 +128,12 @@ class Menu:
             key = opt['key'] + ": "
             unicurses.waddstr(self.scr.win, key, self.scr.attr['key'])
             if not isinstance(opt['val'], basestring):
-                pad = 2 if opt['stat'] == False else 0
+                pad = 2 if opt['stat'] != True else 0
                 if opt['wait'] == True or opt['val'] == True: pad += 2
                 self.dotstr(opt['text'], None, pad)
             else: unicurses.waddstr(self.scr.win, opt['text'])
             attr = self.scr.attr['val']
-            if opt['stat'] == False:
+            if opt['stat'] != True:
                 attr = self.scr.attr['err']
                 unicurses.waddstr(self.scr.win, " !", attr)
             if opt['wait'] == True:
@@ -227,7 +195,7 @@ class Menu:
             if act == None:
                 self.page = 1
                 return True
-            elif hasattr(act, 'show'): self.showMenu(sel, act)
+            elif hasattr(act, 'show'): act.show()
             elif hasattr(act, '__call__'): cont = self.showCall(sel, act)
             elif act == '?': self.showHelp()
             elif act == '&': self.showAlt()
@@ -236,21 +204,9 @@ class Menu:
             elif act == '*': cont = self.showLineEdit(sel, True)
             if cont == False: break
             elif sel['wait'] == True: sel['wait'] = False
-        if sel['verif'] != None:
-            stat = sel['verif'](sel['val'])
-            if stat != None: sel['stat'] = stat
-
-    # Display a child menu, and then set the option's status accordingly. The
-    # parameter 'sel' is the selected option, and 'act' is the action in
-    # question.
-    def showMenu(self, sel, act):
-        act.show()
-        if sel['verif'] != None:
-            stat = sel['verif'](sel['val'])
-            if stat != None: sel['stat'] = stat
-        else:
-            stat = act.status()
-            if stat != None: sel['stat'] = stat
+        if hasattr(sel, 'path'): self.scr.validate(sel.path)
+        valid = sel['stat']
+        if isinstance(valid, basestring): self.scr.msg = ('err', valid)
 
     # Run the action, which is an arbitrary function. While the action is
     # running, display a tilde next to the option to show that it's busy. The
@@ -286,6 +242,12 @@ class Menu:
             if key in self.keymap and self.keymap[key]['help'] != None:
                 if self.keymap[key]['help'] == False: break
                 unicurses.wclear(self.scr.win)
+                err = self.keymap[key]['stat']
+                if isinstance(err, basestring):
+                    attr = self.scr.attr['err']
+                    unicurses.wmove(self.scr.win, self.scr.h - 1, 0)
+                    unicurses.waddnstr(self.scr.win, err, self.scr.w, attr)
+                    unicurses.wmove(self.scr.win, 0, 0)
                 title = self.keymap[key]['text']
                 title = ' '*(self.scr.w - len(title) - 6) + title + " Help \n"
                 unicurses.waddstr(self.scr.win, title, self.scr.attr['ttl'])
@@ -325,7 +287,7 @@ class Menu:
             unicurses.prefresh(buf, 0, offs*hw, yp, xp, yp, xp + fw - 1)
         unicurses.doupdate()
         while True:
-            if quiet: ch = self.scr.getch(buf)
+            if quiet: ch = self.scr.getch(buf, redact=True)
             else:
                 etc = (buf, 0, offs*hw, yn, xn, yn, xn + fw - 1)
                 ch = self.scr.getch(buf, etc)
@@ -378,7 +340,7 @@ class Menu:
         if len(self.pagedopts) <= 10 and totallen <= self.scr.h - 4:
             for opt in self.pagedopts:
                 if opt['key'] == None or len(opt['key']) <= 1:
-                    opt['key'] = str(index)
+                    opt['key'] = str(0 if index == 10 else index)
                     index += 1
             self.curropts = self.pagedopts + self.opts
             padding = self.scr.w - len(self.title) - 1
@@ -406,13 +368,11 @@ class Menu:
     # action.
     def pageprev(self, _):
         self.page -= 1
-        self.pagebuild()
 
     # Increment the current page, and rebuild. Meant to be called as an option's
     # action.
     def pagenext(self, _):
         self.page += 1
-        self.pagebuild()
 
     # A lot of the time, options in the option list need to be accessed by their
     # 'key' property. It makes sense to have a dictionary for these times, even

@@ -3,13 +3,12 @@ import logging
 import xml.etree.ElementTree as ET
 from . import Security, Ldap
 
-class Nexus:
+class Nexus(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.path = None
         self.repos = None
         self.repomap = None
-        self.dirty = True
         self.ldap = Ldap()
         self.security = Security()
 
@@ -18,7 +17,6 @@ class Nexus:
         self.path = None
         self.repos = None
         self.repomap = None
-        self.dirty = True
         self.ldap.initialize()
         self.security.initialize()
         if path == None: return True

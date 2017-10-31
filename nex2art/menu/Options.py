@@ -2,8 +2,8 @@ import logging
 from ..core import Menu
 
 class Options(Menu):
-    def __init__(self, scr):
-        Menu.__init__(self, scr, "Migrate Options")
+    def __init__(self, scr, path):
+        Menu.__init__(self, scr, path, "Migrate Options")
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Options Menu.")
         self.opts = [

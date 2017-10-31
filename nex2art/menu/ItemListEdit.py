@@ -1,15 +1,14 @@
 from ..core import Menu
 
 class ItemListEdit(Menu):
-    def __init__(self, scr, parent, typ, pick, create, update, readonly=False):
-        self.tmp = None
-        self.parent = parent
+    def __init__(self, scr, path, typ, pick, create, update, readonly=False):
+        self.leaf = True
+        Menu.__init__(self, scr, path, typ + " List")
         self.typ = typ
         self.pick = pick
         self.create = create
         self.update = update
         self.readonly = readonly
-        Menu.__init__(self, scr, self.typ + " List")
         self.opts = []
         if not self.readonly:
             newact = self.pick(self) + [self.additem]
@@ -27,29 +26,32 @@ class ItemListEdit(Menu):
         for item in self.pagedopts:
             if item['key'] == 'INFO': continue
             parentval.append(self.update(item))
-        self.parent['val'] = parentval
+        self.option['val'] = parentval
+        for item in self.scr.state[self.path].values():
+            for opt in self.pagedopts:
+                if opt['text'] == item.data: item.valid = opt['stat']
 
     def initialize(self):
+        val = self.scr.state[self.path].values()
         if self.update == None and self.readonly == False: return
-        if self.parent['val'] == None or len(self.parent['val']) == 0:
+        if val == None or len(val) == 0:
             opt = self.mkopt('INFO', "no items in list", None)
             self.pagedopts = [opt]
         else:
             self.pagedopts = []
-            for item in self.parent['val']: self.additem(item)
+            for item in val:
+                opt = self.create(item.data, self)
+                if opt == False: continue
+                opt['stat'] = item.valid
+                self.pagedopts.append(opt)
 
     def additem(self, opt):
-        item = None
-        if isinstance(opt, basestring): item = opt
-        else: item, opt['val'] = opt['val'], None
+        item, opt['val'] = opt['val'], None
         opt = self.create(item, self)
         if opt == False: return False
         if len(self.pagedopts) == 1 and self.pagedopts[0]['key'] == 'INFO':
             self.pagedopts = [opt]
         else: self.pagedopts.append(opt)
-        if opt['verif'] != None:
-            stat = opt['verif'](opt['val'])
-            if stat != None: opt['stat'] = stat
         self.updateparent()
 
     def delitem(self, opt):

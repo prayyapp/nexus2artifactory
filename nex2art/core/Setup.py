@@ -3,7 +3,7 @@ import logging
 import argparse
 from functools import wraps
 
-class Setup:
+class Setup(object):
     def __init__(self):
         self.fixssl()
         self.args = self.getargs()

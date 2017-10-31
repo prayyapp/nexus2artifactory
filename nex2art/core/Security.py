@@ -4,7 +4,7 @@ import logging
 import xml.etree.ElementTree as ET
 from . import getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
 
-class Security:
+class Security(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.initialize()
@@ -19,9 +19,6 @@ class Security:
         self.allroles = None
         self.allprivs = None
         self.allprivmap = None
-        self.usersdirty = True
-        self.rolesdirty = True
-        self.privsdirty = True
 
     def refresh(self, path):
         path = os.path.abspath(path)

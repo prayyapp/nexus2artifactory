@@ -4,7 +4,7 @@ import hashlib
 import logging
 import xml.etree.ElementTree as ET
 
-class Ldap:
+class Ldap(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.initialize()
