@@ -24,10 +24,11 @@ class UserEdit(Menu):
 
     def buildgroupedit(self, itemlist):
         tform = lambda x: x['groupName']
-        groupslist = self.scr.nexus.security.allroles.values()
+        groupslist = self.scr.nexus.security.roles.values()
         return [ChooseList(self.scr, None, "Group", tform, groupslist)]
 
     def makegroupedit(self, grp, itemlist):
+        if grp == None: return False
         def nil(_): pass
         if 'groupName' in grp: grp = grp['groupName']
         for group in itemlist.pagedopts:
@@ -42,3 +43,10 @@ class UserEdit(Menu):
             newname['val'] = newname['val'].strip()
             if newname['val'] == '':
                 newname['val'] = None
+
+    def filt(self, filt):
+        name1 = self.scr.state[self.path]["User Name (Nexus)"].data
+        name2 = self.scr.state[self.path]["User Name (Artifactory)"].data
+        for f in filt:
+            if f not in name1 and f not in name2: return False
+        return True

@@ -1,10 +1,10 @@
 import logging
 from ..core import Menu
-from . import UserEdit
+from . import UserEdit, UserMassEdit
 
 class User(Menu):
     def __init__(self, scr, path):
-        Menu.__init__(self, scr, path, "Migrate Users")
+        Menu.__init__(self, scr, path, "Migrate Users", UserMassEdit)
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing User Menu.")
         self.opts = [

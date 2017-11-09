@@ -36,6 +36,9 @@ class Artifactory(object):
         self.url = None
         self.user = None
         self.pasw = None
+        self.vurl = True
+        self.vuser = True
+        self.vpasw = True
 
     def migrate(self, prog, conf):
         try:
@@ -91,7 +94,7 @@ class Artifactory(object):
         enabled.text = cfg
 
     def initprogress(self, conf, secconf):
-        repoct, grpct, usrct, permct, confct, finalct = 0, 0, 0, 0, 0, 0
+        repoct, grpct, usrct, permct, ldapct, finalct = 0, 0, 0, 0, 0, 0
         if "Repository Migration Setup" in conf:
             nrepos = {}
             for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
@@ -117,21 +120,29 @@ class Artifactory(object):
                 if perm['available'] != True: continue
                 if perm["Migrate This Permission"] != True: continue
                 permct += 1
-        ldapq = True
-        if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
-            ldapq = False
-        else:
-            src = conf["Security Migration Setup"]["LDAP Migration Setup"]
-            if src['available'] != True: ldapq = False
-            if src["Migrate LDAP"] != True: ldapq = False
-        if ldapq: confct += 1
+        if "LDAP Migration Setup" in secconf:
+            for ldapn, ldap in secconf['LDAP Migration Setup'].items():
+                if ldap['available'] != True: continue
+                if ldap["Migrate This LDAP Config"] != True: continue
+                ldapct += 1
         self.prog.stepsmap['Repositories'][2] = repoct
         self.prog.stepsmap['Finalizing'][2] = finalct
         self.prog.stepsmap['Groups'][2] = grpct
         self.prog.stepsmap['Users'][2] = usrct
         self.prog.stepsmap['Permissions'][2] = permct
-        self.prog.stepsmap['Configurations'][2] = confct
+        self.prog.stepsmap['LDAP Configs'][2] = ldapct
         self.prog.refresh()
+
+    def orderrepos(self, repos):
+        replist, repset = [], set()
+        def f(r):
+            if (r in repset): return
+            repset.add(r)
+            if 'repos' in repos[r]:
+                for k in repos[r]['repos']: f(k)
+            replist.append(r)
+        for r in repos.keys(): f(r)
+        return replist
 
     def migraterepos(self, conn, conf):
         self.log.info("Migrating repository definitions.")
@@ -141,8 +152,9 @@ class Artifactory(object):
         for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
         repos = {}
         for res in result: repos[res['key']] = True
-        defaultmaxuniquesnapshots = conf['Repository Migration Setup']["Default Max Unique Snapshots"]
-        for repn, rep in conf["Repository Migration Setup"].items():
+        for repn in self.orderrepos(nrepos):
+            if repn not in conf["Repository Migration Setup"]: continue
+            rep = conf["Repository Migration Setup"][repn]
             if not isinstance(rep, dict): continue
             if rep['available'] != True: continue
             if rep["Migrate This Repo"] != True: continue
@@ -162,10 +174,7 @@ class Artifactory(object):
                     jsn['handleReleases'] = True
                     jsn['handleSnapshots'] = True
                     jsn['suppressPomConsistencyChecks'] = True
-                    if "Max Unique Snapshots" in rep and rep["Max Unique Snapshots"] != None:
-                        jsn['maxUniqueSnapshots'] = rep["Max Unique Snapshots"]
-                    else:
-                        jsn['maxUniqueSnapshots'] = defaultmaxuniquesnapshots
+                    jsn['maxUniqueSnapshots'] = rep["Max Unique Snapshots"]
                 if jsn['rclass'] == 'local':
                     jsn['snapshotVersionBehavior'] = rep["Maven Snapshot Version Behavior"]
                 if jsn['rclass'] == 'remote':
@@ -198,11 +207,17 @@ class Artifactory(object):
                           rep["Repo Name (Artifactory)"])
             self.prog.current = repn + ' -> ' + rep["Repo Name (Artifactory)"]
             self.prog.refresh()
+            nrepo = nrepos[repn]
             try:
                 jsn = {}
                 jsn['handleReleases'] = rep["Handles Releases"]
                 jsn['handleSnapshots'] = rep["Handles Snapshots"]
                 jsn['suppressPomConsistencyChecks'] = rep["Suppresses Pom Consistency Checks"]
+                if nrepo['type'] == 'yum' and (nrepo['class'] == 'local' or nrepo['class'] == 'virtual'):
+                    self.log.info('Requesting yum metadata calculation')
+                    url = 'api/yum/' + urllib.quote(rep["Repo Name (Artifactory)"], '') + '?async=1'
+                    self.dorequest(conn, 'POST', url)
+                    jsn['calculateYumMetadata'] = True
                 cfg = 'api/repositories/' + urllib.quote(rep["Repo Name (Artifactory)"], '')
                 self.dorequest(conn, 'POST', cfg, jsn)
             except:
@@ -240,6 +255,8 @@ class Artifactory(object):
                 jsn['groups'] = []
                 for group in user["Groups"]:
                     if group in self.scr.nexus.security.roles:
+                        if self.scr.nexus.security.roles[group]['builtin']:
+                            continue
                         try:
                             grp = conf["Groups Migration Setup"][group]
                             group = grp["Group Name (Artifactory)"]
@@ -328,49 +345,52 @@ class Artifactory(object):
             finally: self.prog.stepsmap['Permissions'][1] += 1
 
     def migrateldap(self, conf, root, ns):
+        self.log.info("Migrating LDAP configuration.")
         if "LDAP Migration Setup" not in conf["Security Migration Setup"]:
             return
-        src = conf["Security Migration Setup"]["LDAP Migration Setup"]
-        if src['available'] != True: return
-        if src["Migrate LDAP"] != True: return
-        self.log.info("Migrating LDAP configuration.")
-        self.prog.current = "LDAP"
-        self.prog.refresh()
-        try:
-            data = self.scr.nexus.ldap.ldap
-            itr = None
-            ldap = self.buildldap(ns)
-            try: itr = ldap.iter()
-            except AttributeError: itr = ldap.getiterator()
-            for item in itr:
-                tag = item.tag
-                if item.tag.startswith(ns): tag = item.tag[len(ns):]
-                if tag == 'key': item.text = src["LDAP Setting Name"]
-                elif tag == 'name': item.text = src["LDAP Group Name"]
-                elif tag == 'enabledLdap': item.text = src["LDAP Setting Name"]
-                elif tag == 'managerPassword' and 'managerDn' in data:
-                    item.text = src["LDAP Password"]
-                elif tag in data: item.text = data[tag]
-            sec = root.find(ns + 'security')
-            sets = sec.find(ns + 'ldapSettings')
-            newset = ldap.find(ns + 'ldapSetting')
-            ldap.remove(newset)
-            key = newset.find(ns + 'key').text
-            for grp in sets.findall(ns + 'ldapSetting'):
-                if grp.find(ns + 'key').text == key: sets.remove(grp)
-            sets.append(newset)
-            if 'strategy' not in data: return
-            grps = sec.find(ns + 'ldapGroupSettings')
-            newgrp = ldap.find(ns + 'ldapGroupSetting')
-            ldap.remove(newgrp)
-            name = newgrp.find(ns + 'name').text
-            for grp in grps.findall(ns + 'ldapGroupSetting'):
-                if grp.find(ns + 'name').text == name: grps.remove(grp)
-            grps.append(newgrp)
-        except:
-            self.log.exception("Error migrating LDAP configuration:")
-            self.prog.stepsmap['Configurations'][3] += 1
-        finally: self.prog.stepsmap['Configurations'][1] += 1
+        ldapitems = conf["Security Migration Setup"]["LDAP Migration Setup"]
+        ldapdata = self.scr.nexus.ldap.ldap
+        for ldapn, src in ldapitems.items():
+            if src['available'] != True: continue
+            if src["Migrate This LDAP Config"] != True: continue
+            self.prog.current = ldapn + ' -> ' + src["LDAP Setting Name"]
+            self.prog.refresh()
+            try:
+                data = ldapdata[ldapn]
+                itr = None
+                ldap = self.buildldap(ns)
+                try: itr = ldap.iter()
+                except AttributeError: itr = ldap.getiterator()
+                for item in itr:
+                    tag = item.tag
+                    if item.tag.startswith(ns): tag = item.tag[len(ns):]
+                    if tag == 'key': item.text = src["LDAP Setting Name"]
+                    elif tag == 'name': item.text = src["LDAP Group Name"]
+                    elif tag == 'enabledLdap':
+                        item.text = src["LDAP Setting Name"]
+                    elif tag == 'managerPassword' and 'managerDn' in data:
+                        item.text = src["LDAP Password"]
+                    elif tag in data: item.text = data[tag]
+                sec = root.find(ns + 'security')
+                sets = sec.find(ns + 'ldapSettings')
+                newset = ldap.find(ns + 'ldapSetting')
+                ldap.remove(newset)
+                key = newset.find(ns + 'key').text
+                for grp in sets.findall(ns + 'ldapSetting'):
+                    if grp.find(ns + 'key').text == key: sets.remove(grp)
+                sets.append(newset)
+                if 'strategy' not in data: continue
+                grps = sec.find(ns + 'ldapGroupSettings')
+                newgrp = ldap.find(ns + 'ldapGroupSetting')
+                ldap.remove(newgrp)
+                name = newgrp.find(ns + 'name').text
+                for grp in grps.findall(ns + 'ldapGroupSetting'):
+                    if grp.find(ns + 'name').text == name: grps.remove(grp)
+                grps.append(newgrp)
+            except:
+                self.log.exception("Error migrating LDAP configuration:")
+                self.prog.stepsmap['LDAP Configs'][3] += 1
+            finally: self.prog.stepsmap['LDAP Configs'][1] += 1
         self.prog.refresh()
 
     def buildldap(self, ns):
@@ -398,6 +418,59 @@ class Artifactory(object):
         ET.SubElement(lgrp, ns + 'strategy')
         ET.SubElement(lgrp, ns + 'enabledLdap')
         return ldap
+
+    def checkArtifactory(self):
+        state = self.scr.state["Initial Setup"]
+        url = state["Artifactory URL"].data
+        user = state["Artifactory Username"].data
+        pasw = state["Artifactory Password"].data
+        self.vurl, self.vuser, self.vpasw = self.queryArtifactory(url, user, pasw)
+
+    def queryArtifactory(self, urlstr, user, pasw):
+        self.log.info("Sending system ping to Artifactory.")
+        url = list(urlparse.urlparse(str(urlstr)))
+        if url[0] not in ('http', 'https'): url = None
+        elif len(url[2]) == 0 or url[2][-1] != '/': url[2] += '/'
+        headers, stat = {'User-Agent': 'nex2art'}, None
+        if user != None and pasw != None:
+            enc = base64.b64encode(user + ':' + pasw)
+            headers['Authorization'] = "Basic " + enc
+        if url != None:
+            path = url[2] + 'api/system/ping'
+            nurl = urlparse.urlunsplit((url[0], url[1], path, '', ''))
+            self.log.info("Sending request to %s.", nurl)
+            try:
+                req = urllib2.Request(nurl, None, headers)
+                if self.scr.sslnoverify:
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    resp = urllib2.urlopen(req, context=ctx)
+                else: resp = urllib2.urlopen(req)
+                stat = resp.getcode()
+            except urllib2.HTTPError as ex:
+                msg = "Error connecting to Artifactory:\n%s"
+                self.log.exception(msg, ex.read())
+                stat = ex.code
+            except urllib2.URLError as ex:
+                self.log.exception("Error connecting to Artifactory:")
+                stat = ex.reason
+        valurl, valuser, valpasw = False, False, False
+        self.url, self.user, self.pasw = None, None, None
+        if url == None or stat not in (200, 401):
+            valurl = "Unable to access Artifactory instance."
+            valuser = "Unable to access Artifactory instance."
+            valpasw = "Unable to access Artifactory instance."
+        elif user == None or pasw == None or stat == 401:
+            valurl = True
+            valuser = "Incorrect username and/or password."
+            valpasw = "Incorrect username and/or password."
+            self.url = url
+        else:
+            valurl, valuser, valpasw = True, True, True
+            self.url, self.user, self.pasw = url, user, pasw
+        self.log.info("System ping completed, status: %s.", stat)
+        return valurl, valuser, valpasw
 
     def setupconn(self):
         headers = {'User-Agent': 'nex2art'}

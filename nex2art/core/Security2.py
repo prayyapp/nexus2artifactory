@@ -2,25 +2,20 @@ import os
 import re
 import logging
 import xml.etree.ElementTree as ET
-from . import getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
+from . import getBuiltinTargs, getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
 
-class Security(object):
+class Security2(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.initialize()
 
     def initialize(self):
-        self.targs = None
         self.users = None
         self.roles = None
         self.privs = None
         self.privmap = None
-        self.allusers = None
-        self.allroles = None
-        self.allprivs = None
-        self.allprivmap = None
 
-    def refresh(self, path):
+    def refresh(self, path, usertargs, repos):
         path = os.path.abspath(path)
         config = os.path.join(path, 'conf', 'security.xml')
         self.log.info("Reading security config from %s.", config)
@@ -29,22 +24,26 @@ class Security(object):
             return "Given path is not a valid Nexus instance."
         try:
             xml = ET.parse(config).getroot()
-            builtinprivs = getBuiltinPrivs(self.targs)
-            builtinprivmap = getBuiltinPrivmap(builtinprivs)
-            builtinroles = getBuiltinRoles(builtinprivmap)
-            self.getprivileges(xml)
-            self.allprivs = self.privs.copy()
-            self.allprivs.update(builtinprivs)
-            self.allprivmap = self.privmap.copy()
-            self.allprivmap.update(builtinprivmap)
-            self.getroles(xml)
-            self.allroles = self.roles.copy()
-            self.allroles.update(builtinroles)
-            for role in self.allroles.values():
-                self.flattenrole(role)
+            targs = getBuiltinTargs()
+            targs.update(usertargs)
+            privs = getBuiltinPrivs(targs)
+            privmap = getBuiltinPrivmap(privs)
+            privmap.update(self.buildviewprivs(repos))
+            nprivs, nprivmap = self.getprivileges(xml, targs)
+            privs.update(nprivs)
+            privmap.update(nprivmap)
+            self.flattentargets(privs)
+            roles = getBuiltinRoles(privmap)
+            roles.update(self.getroles(xml, privmap))
+            for role in roles.values():
+                self.flattenrole(role, roles)
                 self.consolidateprivs(role)
-            self.getusers(xml)
+            users = self.getusers(xml, roles)
             self.log.info("Successfully read security config.")
+            self.users = users
+            self.roles = roles
+            self.privs = privs
+            self.privmap = privmap
             return True
         except:
             self.log.exception("Error reading security config:")
@@ -53,9 +52,7 @@ class Security(object):
     def gettargets(self, xml):
         targets = {}
         targsxml = xml.find('repositoryTargets')
-        if targsxml == None:
-            self.targs = {}
-            return
+        if targsxml == None: return {}
         for targetxml in targsxml.findall('repositoryTarget'):
             target = {'patterns': [], 'defincpat': [], 'defexcpat': []}
             target['name'] = targetxml.find('id').text
@@ -77,24 +74,31 @@ class Security(object):
                     target['defexcpat'] = False
                     break
             targets[target['name']] = target
-        self.targs = targets
+        return targets
 
-    def getusers(self, xml):
+    def flattentargets(self, privs):
+        for priv in privs.values():
+            targ = priv['target']
+            priv['ptype'] = targ['ptype']
+            priv['patterns'] = targ['patterns']
+            priv['defincpat'] = targ['defincpat']
+            priv['defexcpat'] = targ['defexcpat']
+            del priv['target']
+
+    def getusers(self, xml, roles):
         users = {}
         xmlusers = xml.find('users')
-        if xmlusers == None:
-            self.users = {}
-            return
+        if xmlusers == None: return {}
         for userxml in xmlusers.findall('user'):
-            user = {}
+            user = {'builtin': False}
             user['username'] = userxml.find('id').text
             user['email'] = userxml.find('email').text
             user['enabled'] = userxml.find('status').text == 'active'
             users[user['username']] = user
         urmxml = xml.find('userRoleMappings')
-        if urmxml == None: return
+        if urmxml == None: return {}
         for mapxml in urmxml.findall('userRoleMapping'):
-            user = {'email': None, 'enabled': True}
+            user = {'email': None, 'enabled': True, 'builtin': False}
             user['username'] = mapxml.find('userId').text
             if user['username'] in users: user = users[user['username']]
             user['realm'] = mapxml.find('source').text.lower()
@@ -104,17 +108,17 @@ class Security(object):
             if xmlroles == None: xmlroles = []
             else: xmlroles = xmlroles.findall('role')
             for rolexml in xmlroles:
-                if rolexml.text in self.allroles:
-                    user['roles'].append(self.allroles[rolexml.text])
+                if rolexml.text in roles:
+                    user['roles'].append(roles[rolexml.text])
             users[user['username']] = user
-        self.users = users
+        return users
 
-    def flattenrole(self, role):
+    def flattenrole(self, role, roles):
         while len(role['roles']) > 0:
             child = role['roles'].pop()
-            if child not in self.allroles: continue
-            privs = self.flattenrole(self.allroles[child])
-            if self.allroles[child]['admin']: role['admin'] = True
+            if child not in roles: continue
+            privs = self.flattenrole(roles[child], roles)
+            if roles[child]['admin']: role['admin'] = True
             for priv in privs:
                 if priv not in role['privileges']:
                     role['privileges'].append(priv)
@@ -123,7 +127,7 @@ class Security(object):
     def consolidateprivs(self, role):
         privs, privmap, consprivs = {}, {}, []
         for privref in role['privileges']:
-            if 'methods' not in privref and privref['type'] == 'target':
+            if privref['type'] == 'loosetarget':
                 privname = privref['priv']['name']
                 if privname in privs and privname in privmap:
                     privs[privname].append(privref['method'])
@@ -140,18 +144,33 @@ class Security(object):
             if 'w' in methodstr: methodstr += 'n'
             if 'w' in methodstr: methodstr += 'm'
             if len(methodstr) <= 0: methodstr = None
-            dct = {'privilege': priv, 'methods': methodstr, 'type': 'target'}
+            dct = {
+                'id': priv['name'],
+                'type': 'target',
+                'priv': priv,
+                'method': methodstr,
+                'needadmin': False
+            }
             consprivs.append(dct)
         role['privileges'] = consprivs
 
-    def getroles(self, xml):
+    def buildviewprivs(self, repos):
+        privs = {}
+        for repo in repos:
+            priv = {}
+            priv['id'] = 'repository-' + repo['id']
+            priv['repo'] = repo['id']
+            priv['type'] = 'view'
+            priv['needadmin'] = False
+            privs[priv['id']] = priv
+        return privs
+
+    def getroles(self, xml, privmap):
         roles = {}
         xmlroles = xml.find('roles')
-        if xmlroles == None:
-            self.roles = {}
-            return
+        if xmlroles == None: return {}
         for rolexml in xmlroles.findall('role'):
-            role = {'privileges': [], 'roles': [], 'admin': False}
+            role = {'privileges': [], 'roles': [], 'admin': False, 'builtin': False}
             role['groupName'] = rolexml.find('id').text
             if rolexml.find('description') != None:
                 role['description'] = rolexml.find('description').text
@@ -159,22 +178,19 @@ class Security(object):
             xmlprivileges = rolexml.find('privileges')
             if xmlprivileges != None:
                 for privxml in xmlprivileges.findall('privilege'):
-                    if privxml.text in self.allprivmap:
-                        role['privileges'].append(self.allprivmap[privxml.text])
+                    if privxml.text in privmap:
+                        role['privileges'].append(privmap[privxml.text])
             xmlprivroles = rolexml.find('roles')
             if xmlprivroles != None:
                 for srolexml in xmlprivroles.findall('role'):
                     role['roles'].append(srolexml.text)
             roles[role['groupName']] = role
-        self.roles = roles
+        return roles
 
-    def getprivileges(self, xml):
+    def getprivileges(self, xml, targs):
         privs, privmap = {}, {}
         xmlprivileges = xml.find('privileges')
-        if xmlprivileges == None:
-            self.privs = {}
-            self.privmap = {}
-            return
+        if xmlprivileges == None: return {}, {}
         for privxml in xmlprivileges.findall('privilege'):
             priv, privtmp, privref = None, {}, {}
             xmlproperties = privxml.find('properties')
@@ -190,9 +206,9 @@ class Security(object):
             if matcher != None: name = matcher.group(1)
             if name in privs: priv = privs[name]
             else:
-                priv = {'name': name}
-                if privtmp['repositoryTargetId'] in self.targs:
-                    priv['target'] = self.targs[privtmp['repositoryTargetId']]
+                priv = {'name': name, 'builtin': False}
+                if privtmp['repositoryTargetId'] in targs:
+                    priv['target'] = targs[privtmp['repositoryTargetId']]
                 if (privtmp['repositoryId'] != None
                     and len(privtmp['repositoryId'].strip()) > 0):
                     priv['repo'] = privtmp['repositoryId']
@@ -203,8 +219,8 @@ class Security(object):
                 privs[name] = priv
             privref['id'] = privxml.find('id').text
             privref['method'] = method
-            privref['type'] = 'target'
+            privref['type'] = 'loosetarget'
             privref['priv'] = priv
+            privref['needadmin'] = False
             privmap[privref['id']] = privref
-        self.privs = privs
-        self.privmap = privmap
+        return privs, privmap

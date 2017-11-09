@@ -15,8 +15,8 @@ class Main(Menu):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Main Menu.")
         save, load = ['|', self.save], [self.preload, '|', self.load]
-        self.saveopt = self.mkopt('s', "Save Configuration", save, save=False)
-        self.loadopt = self.mkopt('l', "Load Configuration", load, save=False)
+        self.saveopt = self.mkopt('s', "Save Config JSON File", save, save=False)
+        self.loadopt = self.mkopt('l', "Load Config JSON File", load, save=False)
         def validate(_): self.scr.validate()
         self.opts = [
             self.mkopt('i', "Initial Setup", [self.submenu(Setup), validate]),
@@ -31,6 +31,8 @@ class Main(Menu):
             None,
             self.mkopt('h', "Help", '?'),
             self.mkopt('q', "Exit", None, hdoc=False)]
+        self.scr.artifactory.checkArtifactory()
+        self.scr.nexus.checkNexus()
         self.scr.validate()
         self.scr.oldstate = self.scr.state.clone()
         self.log.debug("Main Menu initialized.")
@@ -39,6 +41,8 @@ class Main(Menu):
     # function. Print the result.
     def doverify(self, _):
         self.log.info("Verifying current state.")
+        self.scr.artifactory.checkArtifactory()
+        self.scr.nexus.checkNexus()
         self.scr.validate()
         if self.scr.state.valid == True:
             self.log.info("Current state verified successfully.")
@@ -50,6 +54,8 @@ class Main(Menu):
     # Run the actual migration, and print the result.
     def runmigration(self, _):
         self.log.info("Attempting to run migration.")
+        self.scr.artifactory.checkArtifactory()
+        self.scr.nexus.checkNexus()
         self.scr.validate()
         if self.scr.state.valid != True:
             self.log.warning("Unable to run migration, errors found.")
@@ -74,7 +80,9 @@ class Main(Menu):
         try:
             f = open(sel['val'], 'w')
             self.scr.state.prune()
-            data = self.scr.state.todict()
+            st = self.scr.state.clone()
+            self.scr.format.codePasswords(st, True)
+            data = st.todict()
             self.scr.format.trim(data)
             json.dump(data, f, indent=4)
             self.log.info("Configuration saved successfully.")
@@ -108,6 +116,9 @@ class Main(Menu):
             data = json.load(f)
             self.scr.format.trim(data)
             self.scr.state = DataTree(self.scr, data)
+            self.scr.format.codePasswords(self.scr.state, False)
+            self.scr.artifactory.checkArtifactory()
+            self.scr.nexus.checkNexus()
             self.scr.validate()
             if self.scr.state.valid == True:
                 self.log.info("Configuration loaded successfully.")

@@ -16,7 +16,7 @@ class PrivMapEdit(Menu):
 
     def buildspecprivs(self):
         self.specprivs = []
-        for priv in self.scr.nexus.security.allprivmap.values():
+        for priv in self.scr.nexus.security.privmap.values():
             if priv['type'] == 'view':
                 name = priv['id'] + ' (view)'
                 specn = (priv['id'], '(view)')
@@ -48,6 +48,7 @@ class PrivMapEdit(Menu):
             for privname, methods in val:
                 item = self.additem(privname, methods.data)
                 if item != False: item['stat'] = methods.valid
+        self.filtpagedopts = self.pagedopts
 
     def additem(self, privname, methods):
         opt, alt = None, self.delitem
@@ -62,11 +63,12 @@ class PrivMapEdit(Menu):
         if len(self.pagedopts) == 1 and self.pagedopts[0]['key'] == 'INFO':
             self.pagedopts = [opt]
         else: self.pagedopts.append(opt)
+        self.filtpagedopts = self.pagedopts
         return opt
 
     def buildpermedit(self):
         tform = lambda x: x['name']
-        privslist = self.scr.nexus.security.allprivs.values() + self.specprivs
+        privslist = self.scr.nexus.security.privs.values() + self.specprivs
         pickpriv = ChooseList(self.scr, None, "Permission", tform, privslist)
         methodedit = PrivMethodEdit(self.scr, None)
         privval = {}
@@ -100,6 +102,7 @@ class PrivMapEdit(Menu):
             if len(self.pagedopts) == 1 and self.pagedopts[0]['key'] == 'INFO':
                 self.pagedopts = [opt]
             else: self.pagedopts.append(opt)
+            self.filtpagedopts = self.pagedopts
             self.updateparent()
         return [pickpriv, g, methodedit, f]
 
@@ -107,7 +110,9 @@ class PrivMapEdit(Menu):
         self.scr.state[self.path][opt['text']].data = opt['val']
 
     def delitem(self, opt):
-        maxset = min(10, self.scr.h - len(self.opts) - 7)
+        maxset = self.scr.h - len(self.opts) - len(self.motnopts) - 4
+        maxset -= len(self.navopts)
+        maxset = min(10, maxset)
         beg = (self.page - 1)*maxset
         end = self.page*maxset
         for idx, optc in enumerate(self.pagedopts[beg:end], beg):
@@ -115,4 +120,5 @@ class PrivMapEdit(Menu):
         if len(self.pagedopts) <= 0:
             opt = self.mkopt('INFO', "no items in list", None)
             self.pagedopts = [opt]
+        self.filtpagedopts = self.pagedopts
         self.updateparent()

@@ -5,7 +5,8 @@ import argparse
 from functools import wraps
 
 class Setup(object):
-    def __init__(self):
+    def __init__(self, argssource):
+        self.argssource = argssource
         self.fixssl()
         self.args = self.getargs()
         self.startlogging(self.args)
@@ -25,7 +26,8 @@ class Setup(object):
     def startlogging(self, args):
         logfile = args.log_file
         noninteractive = args.non_interactive
-        if logfile == None and not noninteractive: return
+        silent = args.silent
+        if (logfile == None and not noninteractive) or silent: return
         level = logging.INFO
         if args.log_level == 'error': level = logging.ERROR
         elif args.log_level == 'warning': level = logging.WARNING
@@ -53,17 +55,20 @@ class Setup(object):
             "the threshold to use for the logging level, if logs are written",
             "whether to disable ssl verification (e.g. for self-signed certs)",
             "the configuration file to load automatically on start",
-            "migrate immediately without displaying the UI (requires -f)"]
+            "migrate immediately without displaying the UI (requires -f)",
+            "Turn off logs output for non interactive mode"]
         chcs = 'error', 'warning', 'info', 'debug'
         parser = argparse.ArgumentParser(description=help[0])
         parser.add_argument('-l', '--log-file', help=help[1])
+        parser.add_argument('-q', '--silent',
+                            action='store_true', help=help[6])
         parser.add_argument('-v', '--log-level', choices=chcs, help=help[2])
         parser.add_argument('-s', '--ssl-no-verify',
                             action='store_true', help=help[3])
         parser.add_argument('-f', '--load-file', help=help[4])
         parser.add_argument('-n', '--non-interactive',
                             action='store_true', help=help[5])
-        args = parser.parse_args()
+        args = parser.parse_args(self.argssource)
         if args.load_file == None and args.non_interactive:
             parser.error("option --load-file is required for non-interactive mode")
         return args

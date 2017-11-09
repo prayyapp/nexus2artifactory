@@ -13,11 +13,11 @@ Set up migration for security settings, including users, groups, permissions,
 and LDAP settings.""",
     "Options Migration Setup": """
 Set up migration for miscellaneous options. None are implemented yet.""",
-    "Save Configuration": """
+    "Save Config JSON File": """
 Save the migration configuration to a JSON file. The save and load options are
 useful if you need to exit the tool and resume migration later, or if you would
 like to back up your configuration to revert to in the future.""",
-    "Load Configuration": """
+    "Load Config JSON File": """
 Load the migration configuration from a JSON file. The save and load options are
 useful if you need to exit the tool and resume migration later, or if you would
 like to back up your configuration to revert to in the future.""",
@@ -31,14 +31,24 @@ migrating all settings and artifacts from Nexus to Artifactory. Artifacts will
 only be migrated if they don't already exist in Artifactory, so running this
 multiple times in a row will only migrate new artifacts each time.""",
     # Initial Setup Menu
-    "Nexus Path": """
+    "Nexus Data Directory": """
 The local file path to the Nexus instance. For efficiency reasons, this tool
 requires file system access to the Nexus server, and so must be run on the same
 server, or on a computer with access to the file system where Nexus is
 installed, and must be run by a user with read access to the Nexus
 installation's directory tree. The correct path to put in this field is a
 directory containing the folders: 'conf', 'indexer', 'logs', 'storage',
-'timeline', and others.""",
+'timeline', and others (or in Nexus 3: 'blobs', 'cache', 'db', 'etc', 'log', and
+others).""",
+    "Nexus URL": """
+The URL of the Nexus server. This allows the tool to access the Nexus instance
+via its REST and Integrations API.""",
+    "Nexus Username": """
+The username of an administrative user on the Nexus server. The tool uses this
+user to log in to Nexus.""",
+    "Nexus Password": """
+The password of an administrative user on the Nexus server. The tool uses this
+user to log in to Nexus.""",
     "Artifactory URL": """
 The URL of the Artifactory server. This allows the tool to access the
 Artifactory instance via its REST API.""",
@@ -49,15 +59,6 @@ this user to log in to Artifactory.""",
 The password, or an API key, of an administrative user on the Artifactory
 server. The tool uses this user to log in to Artifactory.""",
     # Repository Migration Setup Menu
-    "Hash All Artifacts": """
-If this is checked, all artifacts will have their checksums calculated prior to
-migrating. If unchecked, the checksums will be extracted from the Nexus metadata
-instead. This option is useful if you believe the Nexus-provided checksums to be
-incorrect. Keep in mind that this option can considerably slow the migration
-process.""",
-    "Default Max Unique Snapshots": """
-The Default Max Unique Snapshots, you can override this value by editing the
-repository and change Max Unique Snapshots in it.""",
     "Edit Repository": """
 Press 'e' followed by a number key to edit a repository migration in detail.
 Pressing the number key on its own will simply toggle whether or not the
@@ -112,8 +113,8 @@ are not, and modify those groups' details as necessary.""",
 Set up migration for permissions. Choose which permissions are to be migrated
 and which are not, and modify those permissions' details as necessary.""",
     "LDAP Migration Setup": """
-Set up migration for LDAP. Choose whether the LDAP configuration is to be
-migrated, and modify its details as necessary.""",
+Set up migration for LDAP. Choose which LDAP configurations are to be migrated
+and which are not, and modify those configurations' details as necessary.""",
     # Users Migration Setup Menu
     "Default Password": """
 The default temporary password assigned to migrated users. Since Nexus hashes
@@ -243,6 +244,11 @@ Permission to modify the metadata and properties of artifacts.""",
     "Manage Permissions": """
 Permission to modify the privilege settings of users for this permission.""",
     # LDAP Migration Setup Menu
+    "Edit LDAP Config": """
+Press 'e' followed by a number key to edit an LDAP config migration in detail.
+Pressing the number key on its own will simply toggle whether or not the
+config will be migrated.""",
+    # Edit LDAP Configuration Menu
     "LDAP Username": """
 The username of a privileged LDAP user. These credentials are passed to the LDAP
 server to authenticate each LDAP request, unless anonymous authentication is
@@ -252,16 +258,26 @@ The password of a privileged LDAP user. These credentials are passed to the LDAP
 server to authenticate each LDAP request, unless anonymous authentication is
 enabled.""",
     "LDAP Setting Name": """
-While Nexus can be configured with a single set of settings for a single LDAP
-server, Artifactory supports any number of named sets of settings for any number
-of servers. To migrate the settings from Nexus, an LDAP setting name must be
-specified.""",
+The name of the LDAP Setting to create in Artifactory.""",
     "LDAP Group Name": """
-While Nexus can be configured with a single set of settings for a single LDAP
-server, Artifactory supports any number of named sets of settings for any number
-of servers. To migrate the settings from Nexus, an LDAP group setting name must
-be specified.""",
-    "Migrate LDAP": """
-Whether to migrate the LDAP settings. If this is unchecked, no LDAP-related
-Nexus settings will be migrated."""
+The name of the associated LDAP Settings Group to create in Artifactory.""",
+    "Migrate This LDAP Config": """
+Whether to migrate this LDAP config. If this is unchecked, this LDAP config will
+not be migrated.""",
+    # Filter And Mass Edit Options
+    "Search Filter": """
+Set a view filter for these results. This can be a number of space-separated
+substrings. Any item who's name contains all of the given substrings will appear
+in the filtered list, and all other items will be hidden.""",
+    "Mass Edit": """
+Set values on a number of different items at a time. You may set values on any
+number of fields, and the values you specify will replace the current values of
+those fields for all items that match the current search filter.""",
+    "Reset Field": """
+All fields where values will be left alone are marked with 'unchanged'. If you
+set a value to a field by accident, this option will reset the field back to
+'unchanged'.""",
+    "Apply": """
+Overwrite the provided values onto all items that match the current search
+filter.""",
 }

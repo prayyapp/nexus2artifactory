@@ -1,0 +1,323 @@
+{
+    "Security Migration Setup": {
+        "LDAP Migration Setup": {
+            "migrated-nexus": {
+                "available": true, 
+                "LDAP Group Name": "migrated-nexus-group", 
+                "Migrate This LDAP Config": true, 
+                "LDAP Setting Name": "migrated-nexus"
+            }
+        }, 
+        "Permissions Migration Setup": {
+            "maven-snapshot": {
+                "available": true, 
+                "Migrate This Permission": true, 
+                "Permission Name (Artifactory)": "maven-snapshot", 
+                "Include Patterns": [
+                    "**"
+                ], 
+                "Exclude Patterns": []
+            }
+        }, 
+        "Groups Migration Setup": {
+            "all-maven-snapshot": {
+                "available": true, 
+                "Auto Join Users": false, 
+                "Migrate This Group": true, 
+                "Group Name (Artifactory)": "all-maven-snapshot", 
+                "Group Description": "", 
+                "Permissions": {
+                    "maven-snapshot": "rwdnm"
+                }
+            }
+        }, 
+        "Users Migration Setup": {
+            "do-not-migrate-user": {
+                "available": true, 
+                "Email Address": "do-not-migrate@user.com", 
+                "Migrate This User": false, 
+                "User Name (Artifactory)": "do-not-migrate-user", 
+                "Groups": [
+                    "any-all-view"
+                ], 
+                "Is Enabled": true, 
+                "Password": null, 
+                "Is An Administrator": false
+            }, 
+            "admin": {
+                "available": true, 
+                "Email Address": "changeme@yourcompany.com", 
+                "Migrate This User": true, 
+                "User Name (Artifactory)": "admin", 
+                "Groups": [
+                    "nx-admin"
+                ], 
+                "Is Enabled": true, 
+                "Password": "8+ar0IQyWPp956uwXR2QrqSdpa6zC6Yd", 
+                "Is An Administrator": true
+            }, 
+            "disabled-user": {
+                "available": true, 
+                "Email Address": "disabled@user.com", 
+                "Migrate This User": true, 
+                "User Name (Artifactory)": "disabled-user", 
+                "Groups": [
+                    "any-all-view", 
+                    "ui-basic"
+                ], 
+                "Is Enabled": false, 
+                "Password": null, 
+                "Is An Administrator": false
+            }, 
+            "anonymous": {
+                "available": true, 
+                "Email Address": "changeme2@yourcompany.com", 
+                "Migrate This User": false, 
+                "User Name (Artifactory)": "anonymous", 
+                "Groups": [
+                    "anonymous", 
+                    "repository-any-read"
+                ], 
+                "Is Enabled": true, 
+                "Password": null, 
+                "Is An Administrator": false
+            }, 
+            "deployment": {
+                "available": true, 
+                "Email Address": "changeme1@yourcompany.com", 
+                "Migrate This User": true, 
+                "User Name (Artifactory)": "deployment", 
+                "Groups": [
+                    "nx-deployment", 
+                    "repository-any-full"
+                ], 
+                "Is Enabled": true, 
+                "Password": null, 
+                "Is An Administrator": false
+            }, 
+            "maven-user": {
+                "available": true, 
+                "Email Address": "maven@user.com", 
+                "Migrate This User": true, 
+                "User Name (Artifactory)": "maven-user", 
+                "Groups": [
+                    "all-maven-snapshot", 
+                    "ui-basic"
+                ], 
+                "Is Enabled": true, 
+                "Password": null, 
+                "Is An Administrator": false
+            }, 
+            "Default Password": "BVjqFvzgFwdU9P7+WUGpxsx+/uBGF6G4", 
+            "migrate-user": {
+                "available": true, 
+                "Email Address": "migrate@user.com", 
+                "Migrate This User": true, 
+                "User Name (Artifactory)": "migrate-user", 
+                "Groups": [
+                    "nx-admin"
+                ], 
+                "Is Enabled": true, 
+                "Password": "bGXKqOJdfsiPAQ64nSTV9swWM00Eyytb", 
+                "Is An Administrator": true
+            }
+        }
+    }, 
+    "Repository Migration Setup": {
+        "yum-remote": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "yum-remote", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Remote URL": "http://mirror.centos.org/centos/", 
+            "Repo Layout": "simple-default", 
+            "Handles Snapshots": false, 
+            "Repo Description": "yum-remote"
+        }, 
+        "maven-remote": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "maven-remote", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Remote URL": "https://jcenter.bintray.com/", 
+            "Repo Layout": "maven-2-default", 
+            "Handles Snapshots": false, 
+            "Repo Description": "maven-remote"
+        }, 
+        "release-shadow": {
+            "available": true, 
+            "Repo Description": "release-shadow", 
+            "Repo Name (Artifactory)": "release-shadow", 
+            "Migrate This Repo": false, 
+            "Repo Layout": "maven-1-default"
+        }, 
+        "nuget-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "nuget-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "nuget-default", 
+            "Handles Snapshots": true, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "nuget-local"
+        }, 
+        "yum-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "yum-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "simple-default", 
+            "Handles Snapshots": false, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "yum-local"
+        }, 
+        "yum-virtual": {
+            "available": true, 
+            "Repo Description": "yum-virtual", 
+            "Repo Name (Artifactory)": "yum-virtual", 
+            "Migrate This Repo": true, 
+            "Repo Layout": "simple-default"
+        }, 
+        "gems-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "gems-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "simple-default", 
+            "Handles Snapshots": true, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "gems-local"
+        }, 
+        "npm-remote": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "npm-remote", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Remote URL": "https://registry.npmjs.org", 
+            "Repo Layout": "npm-default", 
+            "Handles Snapshots": true, 
+            "Repo Description": "npm-remote"
+        }, 
+        "nuget-remote": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "nuget-remote", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Remote URL": "https://www.nuget.org/", 
+            "Repo Layout": "nuget-default", 
+            "Handles Snapshots": true, 
+            "Repo Description": "nuget-remote"
+        }, 
+        "release-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "release-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "maven-2-default", 
+            "Handles Snapshots": false, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "release-local"
+        }, 
+        "snapshot-local": {
+            "available": true, 
+            "Handles Releases": false, 
+            "Repo Name (Artifactory)": "snapshot-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "maven-2-default", 
+            "Handles Snapshots": true, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "snapshot-local"
+        }, 
+        "generic-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "generic-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "simple-default", 
+            "Handles Snapshots": true, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "generic-local"
+        }, 
+        "npm-virtual": {
+            "available": true, 
+            "Repo Description": "npm-virtual", 
+            "Repo Name (Artifactory)": "npm-virtual", 
+            "Migrate This Repo": true, 
+            "Repo Layout": "npm-default"
+        }, 
+        "gems-remote": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "gems-remote", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Remote URL": "https://rubygems.org/", 
+            "Repo Layout": "simple-default", 
+            "Handles Snapshots": true, 
+            "Repo Description": "gems-remote"
+        }, 
+        "npm-local": {
+            "available": true, 
+            "Handles Releases": true, 
+            "Repo Name (Artifactory)": "npm-local", 
+            "Migrate This Repo": true, 
+            "Max Unique Snapshots": null, 
+            "Suppresses Pom Consistency Checks": false, 
+            "Repo Layout": "npm-default", 
+            "Handles Snapshots": true, 
+            "Maven Snapshot Version Behavior": "unique", 
+            "Repo Description": "npm-local"
+        }, 
+        "nuget-virtual": {
+            "available": true, 
+            "Repo Description": "nuget-virtual", 
+            "Repo Name (Artifactory)": "nuget-virtual", 
+            "Migrate This Repo": true, 
+            "Repo Layout": "nuget-default"
+        }, 
+        "snapshot-virtual": {
+            "available": true, 
+            "Repo Description": "snapshot-virtual", 
+            "Repo Name (Artifactory)": "snapshot-virtual", 
+            "Migrate This Repo": true, 
+            "Repo Layout": "maven-2-default"
+        }, 
+        "gems-virtual": {
+            "available": true, 
+            "Repo Description": "gems-virtual", 
+            "Repo Name (Artifactory)": "gems-virtual", 
+            "Migrate This Repo": true, 
+            "Repo Layout": "simple-default"
+        }
+    }, 
+    "Initial Setup": {
+        "Artifactory URL": "http://localhost:8082/artifactory/", 
+        "Nexus Data Directory": "/Users/eliom/workspace/nexus-images/nexus2/sonatype-work", 
+        "Nexus Password": null, 
+        "Artifactory Password": "xqxS4uc21b8aKleAvOmTS0XJy93mPI5E", 
+        "Nexus URL": null, 
+        "Nexus Username": null, 
+        "Artifactory Username": "admin"
+    }
+}

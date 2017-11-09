@@ -32,18 +32,24 @@ class ItemListEdit(Menu):
                 if opt['text'] == item.data: item.valid = opt['stat']
 
     def initialize(self):
-        val = self.scr.state[self.path].values()
         if self.update == None and self.readonly == False: return
-        if val == None or len(val) == 0:
-            opt = self.mkopt('INFO', "no items in list", None)
-            self.pagedopts = [opt]
-        else:
-            self.pagedopts = []
+        self.pagedopts = []
+        val = self.scr.state[self.path].values()
+        if val != None and len(val) > 0:
             for item in val:
                 opt = self.create(item.data, self)
                 if opt == False: continue
                 opt['stat'] = item.valid
                 self.pagedopts.append(opt)
+        elif isinstance(self.option['val'], list) and len(self.option['val']) > 0:
+            for item in self.option['val']:
+                opt = self.create(item, self)
+                if opt == False: continue
+                self.pagedopts.append(opt)
+        if len(self.pagedopts) <= 0:
+            opt = self.mkopt('INFO', "no items in list", None)
+            self.pagedopts = [opt]
+        self.filtpagedopts = self.pagedopts
 
     def additem(self, opt):
         item, opt['val'] = opt['val'], None
@@ -52,10 +58,13 @@ class ItemListEdit(Menu):
         if len(self.pagedopts) == 1 and self.pagedopts[0]['key'] == 'INFO':
             self.pagedopts = [opt]
         else: self.pagedopts.append(opt)
+        self.filtpagedopts = self.pagedopts
         self.updateparent()
 
     def delitem(self, opt):
-        maxset = min(10, self.scr.h - len(self.opts) - 7)
+        maxset = self.scr.h - len(self.opts) - len(self.motnopts) - 4
+        maxset -= len(self.navopts)
+        maxset = min(10, maxset)
         beg = (self.page - 1)*maxset
         end = self.page*maxset
         for idx, optc in enumerate(self.pagedopts[beg:end], beg):
@@ -63,4 +72,5 @@ class ItemListEdit(Menu):
         if len(self.pagedopts) <= 0:
             opt = self.mkopt('INFO', "no items in list", None)
             self.pagedopts = [opt]
+        self.filtpagedopts = self.pagedopts
         self.updateparent()

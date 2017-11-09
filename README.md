@@ -11,9 +11,10 @@ that might need to be migrated. See the bottom of this page for further details.
 
 Currently, the following data can be migrated:
 - local (hosted), remote (proxy), and virtual (group) repositories
+  - note that Bower repositories are not yet supported
 - artifacts stored in local (hosted) repositories
 - users, groups (roles), and permissions (privileges)
-- LDAP configuration
+- LDAP configurations
 
 Installation
 ------------
@@ -50,12 +51,14 @@ following options are available:
   changes only affect the current configuration, and will take effect on the
   Artifactory instance when the migration is run (the Nexus instance does not
   change).
-- <kbd>s</kbd> *Save Configuration* - Allows you to save the current
+- <kbd>u</kbd> *Security Migration Setup* - Migration options for security data,
+  such as users, groups, permissions, and LDAP configurations.
+- <kbd>s</kbd> *Save Config JSON File* - Allows you to save the current
   configuration to a JSON file. This way, you can close the tool and come back
   to it later, or you can save the current state of the migration to revert back
   to at a future time.
-- <kbd>l</kbd> *Load Configuration* - Allows you to load a JSON file containing
-  a configuration.
+- <kbd>l</kbd> *Load Config JSON File* - Allows you to load a JSON file
+  containing a configuration.
 - <kbd>v</kbd> *Verify Configuration* - Rescan the Nexus and Artifactory
   instances, and reapply the current configuration. This should be used to check
   for incompatibilities after the Nexus instance has been modified.
@@ -70,7 +73,7 @@ The first step is to connect to the Nexus and Artifactory instances, so type
 ![Setup Menu Screenshot](doc/setupMenu.png)
 
 The following options are available:
-- <kbd>n</kbd> *Nexus Path* - The local filesystem path, where the Nexus
+- <kbd>n</kbd> *Nexus Data Directory* - The local filesystem path, where the Nexus
   instance is installed. This is generally a `sonatype-work/nexus/` folder. This
   path can be either a relative or absolute file path. If the path doesn't
   exist, or if it doesn't contain a valid Nexus install, this option will be
@@ -86,6 +89,12 @@ The following options are available:
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
   context-sensitive help for that option.
 - <kbd>q</kbd> *Back* - Go back to the main menu.
+
+When a Nexus 3 path is specified, three new options will appear below it,
+allowing you to input the Nexus URL, username, and password. This is because
+Nexus 3 does not make all of its data available on the filesystem like Nexus 2
+does, so the tool must connect to the instance to retrieve some of the
+information.
 
 ![Setup Menu Screenshot With Filled Options](doc/setupFilled.png)
 
@@ -112,6 +121,12 @@ The following options are available:
   whether the repository is a `(local)`, `[remote]`, `<shadow>`, or `{virtual}`.
   If there are a lot of repositories to show, they can be paged through using
   the left and right arrow keys.
+- <kbd>f</kbd> *Search Filter* - Filter the repository list, displaying only
+  repositories that match part of the filter string. This allows for easier
+  browsing and editing of large lists of repositories.
+- <kbd>m</kbd> *Mass Edit* - Allows editing of many repositories at once. Any
+  fields set in the mass edit menu will overwrite existing values on all
+  repositories that match the current search filter.
 - <kbd>e</kbd> *Edit Repository* - Typing <kbd>e</kbd> followed by a number
   allows you to edit the associated repository.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
@@ -141,6 +156,13 @@ The following options are available:
   Local and remote repositories only.
 - <kbd>s</kbd> *Handles Snapshots* - Whether this repository handles snapshots.
   Local and remote repositories only.
+- <kbd>p</kbd> *Suppresses Pom Consistency Checks* - Whether this repository
+  disables checking for inconsistencies with pom files before allowing artifacts
+  to be deployed. Local and remote repositories only.
+- <kbd>x</kbd> *Max Unique Snapshots* - The maximum number of unique snapshot
+  versions. Local and remote repositories only.
+- <kbd>b</kbd> *Maven Snapshot Version Behavior* - The behavior of snapshots in
+  this repository. Local repositories only.
 - <kbd>u</kbd> *Remote URL* - The URL of the repository this one proxies. Remote
   repositories only.
 - <kbd>h</kbd> *Help* - Pressing another key after this one displays
@@ -185,7 +207,7 @@ list, and then type <kbd>6</kbd> to unmark the repository.
 Now, the error is gone. The error has disappeared on the main menu as well, and
 the migration can now be run.
 
-Logging
+Options
 -------
 
 This tool can optionally write logs to a file. This is primarily useful for
@@ -198,36 +220,58 @@ options:
   are ignored. Possible values are `error`, `warning`, `info`, and `debug`. If
   this option is not given, it defaults to `info`.
 
+This tool can also be run programmatically, provided that a valid migration
+configuration JSON has already been generated. This can be configured using the
+following commandline options:
+- `-f`, `--load-file`: Select a config JSON file to load immediately. This can
+  be used in interactive mode, and is equivalent to using the <kbd>l</kbd>
+  option on the tool's main screen. In non-interactive mode, this option is
+  required.
+- `-n`, `--non-interactive`: Run the tool in non-interactive mode. This loads
+  the config JSON specified by `-f`, and immediately runs migration. If the
+  config JSON was invalid or the migration had errors, the tool returns nonzero.
+- `-q`, `--silent`: By default, non-interactive mode prints logs to stdout, as
+  well as the file optionally specified by `-l`. If `-q` is passed, no logs are
+  printed.
+
+Other commandline options are as follows:
+- `-s`, `--ssl-no-verify`: Disable SSL verification. This is useful if your
+  Artifactory and/or Nexus 3 instance uses a self-signed SSL certificate.
+- `-h`, `--help`: Print help message, which describes all of these options.
+
+Testing
+-------
+
+This project uses Python's [unittest framework][]. To run the tests, you can use
+your favorite IDE, or run them from the command line.
+
+To run the unit tests from the command line (requires Python 2.7):
+
+``` shell
+cd nex2art/tests
+python -m unittest discover -v -p "*Test.py"
+```
+
+[unittest framework]: https://docs.python.org/2/library/unittest.html
+
 Future Development
 ------------------
 
 This tool is currently incomplete, and plenty of features are not yet
 implemented. The following is a list of features that are currently in
 development, and should be added to the tool soon:
+- migrate Bower repositories
+- migrate to Artifactory SaaS instances
 - migrate scheduled tasks
 - migrate other instance-wide settings (email settings, proxy settings, etc)
 - support paid Nexus features, such as custom metadata
 - modify virtual repository child lists
 - modify repository package types
-- obfuscate passwords in save files
-- support Nexus 3
 
 Nearly everything the tool does not yet migrate can be fixed manually via the
 Artifactory user interface, after the migration is complete. A major exception
 to this is if the tool chooses the wrong package type for a repository. If a
 package type needs to be fixed after migration, [packageType.py][] might help.
-
-Unit Testing
-------------------
-This project uses Python's [unittest framework](https://docs.python.org/2/library/unittest.html). To run the unit tests, you can use your favorite IDE or run them from the command line. 
-
-To run the unit tests from the command line (requires 2.7+):
-
-```$xslt
-cd nex2art/tests
-python -m  unittest discover -v -p "*Test.py"
-
-```
 
 [packageType.py]:
 https://github.com/JFrogDev/artifactory-scripts/tree/master/4.x-migration

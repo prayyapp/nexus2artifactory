@@ -16,7 +16,7 @@ class Progress(object):
         self.steps.append(["Groups", 0, 0, 0, None])
         self.steps.append(["Users", 0, 0, 0, None])
         self.steps.append(["Permissions", 0, 0, 0, None])
-        self.steps.append(["Configurations", 0, 0, 0, None])
+        self.steps.append(["LDAP Configs", 0, 0, 0, None])
         self.steps.append(["Artifacts", False, None, 0, 0])
         self.steps.append(["Finalizing", 0, 0, 0, None])
         for step in self.steps: self.stepsmap[step[0]] = step
@@ -103,8 +103,10 @@ class Progress(object):
         name, done, total, errors, artifacts = step
         stat, color = None, None
         if errors > 0: stat, color = " ! ", 'err'
-        elif done == True or done >= total: stat, color = " + ", 'val'
-        elif done == False or done <= 0: stat, color = "   ", 'val'
+        elif done == True or (not isinstance(done, bool) and done >= total):
+            stat, color = " + ", 'val'
+        elif done == False or (not isinstance(done, bool) and done <= 0):
+            stat, color = "   ", 'val'
         else: stat, color = " ~ ", 'slp'
         unicurses.waddstr(self.scr.win, stat, self.scr.attr[color])
         stats = []

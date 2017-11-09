@@ -4,7 +4,7 @@ import hashlib
 import logging
 import xml.etree.ElementTree as ET
 
-class Ldap(object):
+class Ldap2(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.initialize()
@@ -46,7 +46,7 @@ class Ldap(object):
         return ''.join(out)
 
     def getldap(self, ldapxml):
-        tmpdata, ldap = {}, {}
+        tmpdata, ldap = {}, {'nexusName': 'migrated-nexus'}
         root = ET.parse(ldapxml).getroot()
         itr = None
         try: itr = root.iter()
@@ -103,4 +103,4 @@ class Ldap(object):
             if 'groupSubtree' in tmpdata:
                 ldap['subTree'] = tmpdata['groupSubtree']
             else: ldap['subTree'] = 'false'
-        return ldap
+        return {'migrated-nexus': ldap}

@@ -1,16 +1,14 @@
 import logging
 from ..core import Menu
-from . import RepoEdit
+from . import RepoEdit, RepoMassEdit
 
 class Repo(Menu):
     def __init__(self, scr, path):
-        Menu.__init__(self, scr, path, "Migrate Repositories")
+        Menu.__init__(self, scr, path, "Migrate Repositories", RepoMassEdit)
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Repo Menu.")
         self.opts = [
             None,
-            self.mkopt('x', "Default Max Unique Snapshots", '|'),
-            self.mkopt('c', "Hash All Artifacts", '+'),
             self.mkopt('e', "Edit Repository", '&'),
             None,
             self.mkopt('h', "Help", '?'),

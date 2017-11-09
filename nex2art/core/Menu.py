@@ -13,17 +13,22 @@ class Menu(object):
     # access shared resources such as the unicurses windows and text attributes.
     # The parameter 'title' is the title of the menu, which is displayed in the
     # top right corner of the window.
-    def __init__(self, scr, path, title):
+    def __init__(self, scr, path, title, defeditor=None):
         self.option = None
+        self.defeditor = defeditor
         self.scr = scr
         self.path = path
         self.pagedopts = []
+        self.filtpagedopts = []
         self.title = title
+        self.navopts = []
         self.motnopts = [
             None,
-            self.mkopt('<-', "Previous Page", self.pageprev),
-            self.mkopt('->', "Next Page", self.pagenext)]
+            self.mkopt('<-/->', "Previous Page / Next Page", None)]
+        filt = ['|', self.setfilter]
+        self.filtopt = self.mkopt('f', "Search Filter", filt, save=False)
         self.page = 1
+        self.filter = []
 
     # Create an option. This is a simple convenience function which places its
     # arguments into a dictionary, and returns the dictionary. The parameters
@@ -52,8 +57,8 @@ class Menu(object):
             realpath = self.path[:]
             realpath.append(text)
             if mypath == None: mypath = realpath
-        if key in ('<-', '->', 'INFO') or mypath == None: shouldsave = False
-        if key in ('<-', '->') or mypath == None: control = True
+        if key in ('<-/->', 'INFO') or mypath == None: shouldsave = False
+        if key == '<-/->' or mypath == None: control = True
         if None in act:
             shouldsave = False
             if key != 'INFO': control = True
@@ -61,11 +66,7 @@ class Menu(object):
         for axt in act, alt:
             for n, x in enumerate(axt):
                 if isinstance(x, dict) and 'class' in x:
-                    vpath = None
-                    if self.path != None:
-                        vpath = self.path[:]
-                        vpath.append(text)
-                    axt[n] = x['class'](self.scr, vpath, *x['args'], **x['kwargs'])
+                    axt[n] = x['class'](self.scr, realpath, *x['args'], **x['kwargs'])
                 y = axt[n]
                 if isinstance(y, Menu):
                     shouldsave = False
@@ -140,6 +141,8 @@ class Menu(object):
                 unicurses.waddstr(self.scr.win, " ~", self.scr.attr['slp'])
             elif opt['val'] == True:
                 unicurses.waddstr(self.scr.win, " +", attr)
+            elif opt['val'] == (None,):
+                unicurses.waddstr(self.scr.win, " unchanged", self.scr.attr['slp'])
             elif isinstance(opt['val'], (basestring, list)):
                 if len(opt['text']) > 0: unicurses.waddstr(self.scr.win, " ")
                 value = opt['val']
@@ -156,6 +159,7 @@ class Menu(object):
     # closed.
     def show(self):
         if hasattr(self, 'initialize'): self.initialize()
+        if self.filtopt != None: self.setfilter(self.filtopt)
         while True:
             sel = None
             self.pagebuild()
@@ -238,7 +242,9 @@ class Menu(object):
         string = "Type a command key for contextual help: "
         unicurses.waddstr(self.scr.win, string)
         while True:
-            key = chr(self.scr.getch(self.scr.win))
+            try:
+                key = chr(self.scr.getch(self.scr.win))
+            except ValueError: continue
             if key in self.keymap and self.keymap[key]['help'] != None:
                 if self.keymap[key]['help'] == False: break
                 unicurses.wclear(self.scr.win)
@@ -278,7 +284,7 @@ class Menu(object):
         buf = unicurses.newpad(1, maxwidth + 1)
         unicurses.keypad(buf, 1)
         offs, length, submit = 0, 0, False
-        if not quiet and sel['val'] != None:
+        if not quiet and sel['val'] != None and sel['val'] != (None,):
             length = len(sel['val'])
             unicurses.waddstr(buf, sel['val'])
             offs = max(0, length/hw - 1)
@@ -336,20 +342,34 @@ class Menu(object):
     # build a new keymap for this updated options list.
     def pagebuild(self):
         index = 1
-        totallen = len(self.pagedopts) + len(self.opts)
-        if len(self.pagedopts) <= 10 and totallen <= self.scr.h - 4:
-            for opt in self.pagedopts:
+        if (self.defeditor == None or len(self.pagedopts) <= 0 or
+                (len(self.pagedopts) == 1 and
+                     self.pagedopts[0]['key'] == 'INFO')):
+            self.navopts = []
+        elif (len(self.filtpagedopts) <= 0 or
+                  (len(self.filtpagedopts) == 1 and
+                       self.filtpagedopts[0]['key'] == 'INFO')):
+            self.navopts = [None, self.filtopt]
+        else:
+            medit = self.mkopt('m', "Mass Edit", self.massedit, save=False)
+            self.navopts = [None, self.filtopt, medit]
+        totallen = len(self.filtpagedopts) + len(self.opts)
+        optslen = self.scr.h - len(self.navopts) - 4
+        if len(self.filtpagedopts) <= 10 and totallen <= optslen:
+            for opt in self.filtpagedopts:
                 if opt['key'] == None or len(opt['key']) <= 1:
                     opt['key'] = str(0 if index == 10 else index)
                     index += 1
-            self.curropts = self.pagedopts + self.opts
+            self.curropts = self.filtpagedopts + self.navopts + self.opts
             padding = self.scr.w - len(self.title) - 1
             self.titlebar = ' '*padding + self.title + ' '
             self.buildKeymap()
             return
-        maxset = min(10, self.scr.h - len(self.opts) - 7)
-        pagect = len(self.pagedopts)/maxset
-        if len(self.pagedopts)%maxset > 0: pagect += 1
+        maxset = self.scr.h - len(self.opts) - len(self.motnopts) - 4
+        maxset -= len(self.navopts)
+        maxset = min(10, maxset)
+        pagect = len(self.filtpagedopts)/maxset
+        if len(self.filtpagedopts)%maxset > 0: pagect += 1
         if self.page < 1: self.page = 1
         if self.page > pagect: self.page = pagect
         title = self.title + " (Page " + str(self.page)
@@ -357,12 +377,46 @@ class Menu(object):
         self.titlebar = ' '*(self.scr.w - len(title) - 1) + title + ' '
         beg = (self.page - 1)*maxset
         end = self.page*maxset
-        for opt in self.pagedopts[beg:end]:
+        for opt in self.filtpagedopts[beg:end]:
             if opt['key'] == None or len(opt['key']) <= 1:
                 opt['key'] = str(0 if index == 10 else index)
                 index += 1
-        self.curropts = self.pagedopts[beg:end] + self.motnopts + self.opts
+        self.curropts = self.filtpagedopts[beg:end] + self.motnopts
+        self.curropts += self.navopts + self.opts
         self.buildKeymap()
+
+    def setfilter(self, newfilter):
+        if newfilter['val'] == None:
+            self.filter = []
+            self.filtpagedopts = self.pagedopts
+        else:
+            def f(x): return x['alt'][0].filt(self.filter)
+            self.filter = newfilter['val'].split()
+            self.filtpagedopts = filter(f, self.pagedopts)
+            if len(self.filtpagedopts) <= 0:
+                msg = "no results found"
+                self.filtpagedopts = [self.mkopt('INFO', msg, None)]
+
+    def massedit(self, _):
+        editor = self.defeditor(self.scr)
+        editor.show()
+        updates = {}
+        for opt in editor.opts:
+            if opt == None or opt['alt'][0] != editor.massreset: continue
+            if opt['val'] == (None,): continue
+            updates[opt['text']] = opt['val']
+        if len(updates) <= 0: return
+        for popt in self.filtpagedopts:
+            for itemn, item in self.scr.state[popt['alt'][0].path].items():
+                if itemn in updates: item.data = updates[itemn]
+
+    def massreset(self, opt):
+        opt['val'] = (None,)
+
+    def massinit(self, _):
+        for opt in self.opts:
+            if opt == None or opt['alt'][0] != self.massreset: continue
+            opt['val'] = (None,)
 
     # Decrement the current page, and rebuild. Meant to be called as an option's
     # action.
@@ -385,7 +439,10 @@ class Menu(object):
         for opt in self.curropts:
             if opt != None:
                 self.keymap[opt['key']] = opt
-                if opt['key'] == '<-':
-                    self.keymap[unicurses.KEY_LEFT] = opt
-                elif opt['key'] == '->':
-                    self.keymap[unicurses.KEY_RIGHT] = opt
+                if opt['key'] == '<-/->':
+                    opt1 = opt.copy()
+                    opt2 = opt.copy()
+                    opt1['act'] = [self.pageprev]
+                    opt2['act'] = [self.pagenext]
+                    self.keymap[unicurses.KEY_LEFT] = opt1
+                    self.keymap[unicurses.KEY_RIGHT] = opt2

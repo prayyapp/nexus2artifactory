@@ -41,3 +41,10 @@ class RepoEdit(Menu):
             newname['val'] = newname['val'].strip()
             if newname['val'] == '':
                 newname['val'] = None
+
+    def filt(self, filt):
+        name1 = self.scr.state[self.path]["Repo Name (Nexus)"].data
+        name2 = self.scr.state[self.path]["Repo Name (Artifactory)"].data
+        for f in filt:
+            if f not in name1 and f not in name2: return False
+        return True

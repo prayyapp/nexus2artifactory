@@ -33,8 +33,8 @@ class PermissionEdit(Menu):
 
     def resetpatterns(self, _=None):
         noDefault = False
-        targ = self.scr.nexus.security.privs[self.path[-1]]['target']
-        incp, excp = targ['defincpat'], targ['defexcpat']
+        priv = self.scr.nexus.security.privs[self.path[-1]]
+        incp, excp = priv['defincpat'], priv['defexcpat']
         includepat = self.scr.state[self.path]["Include Patterns"]
         excludepat = self.scr.state[self.path]["Exclude Patterns"]
         if incp == False: noDefault, incp = True, []
@@ -47,3 +47,10 @@ class PermissionEdit(Menu):
             newname['val'] = newname['val'].strip()
             if newname['val'] == '':
                 newname['val'] = None
+
+    def filt(self, filt):
+        name1 = self.scr.state[self.path]["Permission Name (Nexus)"].data
+        name1 = self.scr.state[self.path]["Permission Name (Artifactory)"].data
+        for f in filt:
+            if f not in name1 and f not in name2: return False
+        return True

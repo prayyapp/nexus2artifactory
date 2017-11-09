@@ -65,6 +65,6 @@ def initNonInteractive(setup):
         logging.shutdown()
 
 if __name__ == '__main__':
-    setup = Setup()
+    setup = Setup(sys.argv[1:])
     if setup.args.non_interactive: initNonInteractive(setup)
     else: initInteractive(setup)

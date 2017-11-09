@@ -1,10 +1,10 @@
 import logging
 from ..core import Menu
-from . import GroupEdit
+from . import GroupEdit, GroupMassEdit
 
 class Group(Menu):
     def __init__(self, scr, path):
-        Menu.__init__(self, scr, path, "Migrate Groups")
+        Menu.__init__(self, scr, path, "Migrate Groups", GroupMassEdit)
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Group Menu.")
         self.opts = [

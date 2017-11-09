@@ -1,0 +1,13 @@
+[General]
+tempFolder=/tmp
+
+[Artifactory]
+version=5.8.3
+exposedPort=8082
+
+[Nexus2]
+exposedPort=8081
+
+[Nexus3]
+exposedPort=8083
+dockerRegistryPort=8084

@@ -36,7 +36,7 @@ class Screen(object):
         self.oldstate = DataTree(self, {})
         self.validate = Validate(self)
         self.format = Format(self)
-        self.nexus = Nexus()
+        self.nexus = Nexus(self)
         self.artifactory = Artifactory(self)
         self.initstate(args.load_file)
         self.log.debug("Screen initialized.")
@@ -55,6 +55,9 @@ class Screen(object):
             data = json.load(f)
             self.format.trim(data)
             self.state = DataTree(self, data)
+            self.format.codePasswords(self.state, False)
+            self.artifactory.checkArtifactory()
+            self.nexus.checkNexus()
             self.validate()
             if self.state.valid == True:
                 self.log.info("Configuration loaded successfully.")
@@ -67,8 +70,8 @@ class Screen(object):
             stat = "Unable to load from specified file."
         finally:
             if f != None: f.close()
-        loadopt = self.state["Load Configuration"]
-        saveopt = self.state["Save Configuration"]
+        loadopt = self.state["Load Config JSON File"]
+        saveopt = self.state["Save Config JSON File"]
         loadopt.data = path
         self.loadst = stat
         if stat == True: saveopt.data = path

@@ -5,7 +5,6 @@ import urllib2
 import urlparse
 import xml.etree.ElementTree as ET
 from functools import wraps
-from .SecConst import permissionSet
 
 validationmap = {}
 
@@ -77,18 +76,6 @@ class Validate(object):
                 if n[k].valid != True: n.valid = False
             if n.valid == None: n.valid = True
 
-    @validates("Default Max Unique Snapshots")
-    def validateDefaultMaxUniqueSnapshots(self, path, state):
-        newmax = state.data
-        try: maxnum = int(newmax)
-        except (TypeError, ValueError): maxnum = -1
-        if maxnum < 0: return "Default Max must be a nonnegative integer"
-        else: return True
-
-    @validates("Hash All Artifacts")
-    def validateHashAllArtifacts(self, path, state):
-        return True
-
     @validates("Repository Migration Setup/.")
     def validateRepo(self, path, state):
         if state.save == False: return None
@@ -118,14 +105,14 @@ class Validate(object):
 
     @validates("Repo Type")
     def validateRepoType(self, path, state):
-        # TODO implement
+        newtype = state.data
+        if newtype == 'bower': return False
         return True
 
     @validates("Max Unique Snapshots")
     def validateMaxUniqueSnapshots(self, path, state):
         if state.save == False: return True
         newmax = state.data
-        if newmax == None: return True
         try: maxnum = int(newmax)
         except (TypeError, ValueError): maxnum = -1
         if maxnum < 0: return "Max must be a nonnegative integer"
@@ -139,10 +126,25 @@ class Validate(object):
         return "Remote URL must not be blank."
 
     @validates("Default Password")
+    def defaultPasswordStub(self, path, state):
+        return None
+
+    @validates("Users Migration Setup")
     def validateDefaultPassword(self, path, state):
-        newpasw = state.data
-        if newpasw != None: return True
-        return "Default password must not be blank."
+        newpasw = state["Default Password"]
+        if newpasw.data != None:
+            newpasw.valid = True
+            return None
+        for usern, user in state.items():
+            if user.save == False or user.isleaf(): continue
+            if user["available"].data != True: continue
+            if user["Migrate This User"].data != True: continue
+            if user["Is An Administrator"].data == True: continue
+            if user["Password"].data != None: continue
+            newpasw.valid = "Default password must not be blank."
+            return None
+        newpasw.valid = True
+        return None
 
     @validates("Users Migration Setup/.")
     def validateUser(self, path, state):
@@ -173,22 +175,21 @@ class Validate(object):
 
     @validates("Security Migration Setup")
     def validateSecuritySetup(self, path, state):
-        if self.scr.nexus.security.allroles == None: return None
+        if self.scr.nexus.security.roles == None: return None
+        privmap = self.scr.nexus.security.privmap
         perms, groups, groupadmin = [], [], []
         for permn, perm in state["Permissions Migration Setup"].items():
             if perm.isleaf(): continue
             if perm["Migrate This Permission"].data == True: continue
             perms.append(permn)
-        for groupn, group in self.scr.nexus.security.allroles.items():
+        for groupn, group in self.scr.nexus.security.roles.items():
             for perm in group['privileges']:
-                if 'permission' not in perm: continue
-                if perm['permission'] in permissionSet and perm['method'] != 'read':
-                    groupadmin.append(groupn)
+                if perm['needadmin']: groupadmin.append(groupn)
         for groupn, group in state["Groups Migration Setup"].items():
             if group.isleaf(): continue
             admin = False
             for permn, perm in group["Permissions"].items():
-                if permn in permissionSet and perm.data != "(read)":
+                if permn in privmap and privmap[permn]['needadmin']:
                     admin = True
                 if permn in perms:
                     perm.valid = "Specified permission is not marked for migration."
@@ -201,7 +202,7 @@ class Validate(object):
             for group in user["Groups"].values():
                 if group.data in groups:
                     group.valid = "Specified group is not marked for migration."
-                elif group in groupadmin and admin == False:
+                elif group.data in groupadmin and admin == False:
                     group.valid = "Non-admin user may not have admin permission."
         return None
 
@@ -239,16 +240,16 @@ class Validate(object):
         if len(newpattern) > 0: return True
         return "At least one include pattern must be specified."
 
-    @validates("LDAP Migration Setup")
+    @validates("LDAP Migration Setup/.")
     def validateLDAP(self, path, state):
-        if self.scr.nexus.ldap.ldap == None: return True
-        if state["Migrate LDAP"].data: return None
+        if state.save == False: return None
+        if state["Migrate This LDAP Config"].data: return None
         return True
 
     @validates("LDAP Password")
     def validateLDAPPassword(self, path, state):
-        newpass = state.data
-        if newpass != None: return True
+        if state.save == False: return True
+        if state.data != None: return True
         return "Password must not be blank."
 
     @validates("LDAP Setting Name")
@@ -264,74 +265,23 @@ class Validate(object):
         return "Group name must not be blank."
 
     @validates("Initial Setup")
-    def validateArtifactoryConnection(self, path, state):
-        self.log.info("Sending system ping to Artifactory.")
-        url = list(urlparse.urlparse(str(state["Artifactory URL"].data)))
-        user = state["Artifactory Username"].data
-        pasw = state["Artifactory Password"].data
-        if url[0] not in ('http', 'https'): url = None
-        elif len(url[2]) == 0 or url[2][-1] != '/': url[2] += '/'
-        headers, conn, stat = {'User-Agent': 'nex2art'}, None, None
-        if user != None and pasw != None:
-            enc = base64.b64encode(user + ':' + pasw)
-            headers['Authorization'] = "Basic " + enc
-        if url != None:
-            path = url[2] + 'api/system/ping'
-            nurl = urlparse.urlunsplit((url[0], url[1], path, '', ''))
-            self.log.info("Sending request to %s.", nurl)
-            try:
-                req = urllib2.Request(nurl, None, headers)
-                if self.scr.sslnoverify:
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    resp = urllib2.urlopen(req, context=ctx)
-                else: resp = urllib2.urlopen(req)
-                stat = resp.getcode()
-            except urllib2.HTTPError as ex:
-                msg = "Error connecting to Artifactory:\n%s"
-                self.log.exception(msg, ex.read())
-                stat = ex.code
-            except urllib2.URLError as ex:
-                self.log.exception("Error connecting to Artifactory:")
-                stat = ex.reason
-        valurl = state["Artifactory URL"].data == None
-        valuser = user == None
-        valpasw = pasw == None
-        if stat in (200, 401):
-            valurl = True
-            self.scr.artifactory.url = url
-        else: self.scr.artifactory.url = None
-        if user != None and pasw != None and stat == 200:
-            valuser = True
-            valpasw = True
-            self.scr.artifactory.user = user
-            self.scr.artifactory.pasw = pasw
-        else:
-            self.scr.artifactory.user = None
-            self.scr.artifactory.pasw = None
-        if stat == 401 or (user != pasw and (user == None or pasw == None)):
-            valurl = "Incorrect username and/or password."
-            valuser = "Incorrect username and/or password."
-            valpasw = "Incorrect username and/or password."
-        elif url != None and stat != 200:
-            valurl = "Unable to access Artifactory instance."
-            valuser = "Unable to access Artifactory instance."
-            valpasw = "Unable to access Artifactory instance."
-        self.log.info("System ping completed, status: %s.", stat)
-        state["Artifactory URL"].valid = valurl
-        state["Artifactory Username"].valid = valuser
-        state["Artifactory Password"].valid = valpasw
-        val = valurl == True and valuser == True and valpasw == True
-        if val != True: return False
+    def validateConnections(self, path, state):
+        state["Artifactory URL"].valid = self.scr.artifactory.vurl
+        state["Artifactory Username"].valid = self.scr.artifactory.vuser
+        state["Artifactory Password"].valid = self.scr.artifactory.vpasw
+        state["Nexus Data Directory"].valid = self.scr.nexus.vpath
+        state["Nexus URL"].valid = self.scr.nexus.vurl
+        state["Nexus Username"].valid = self.scr.nexus.vuser
+        state["Nexus Password"].valid = self.scr.nexus.vpasw
         return None
 
-    @validates("Nexus Path")
-    def validateNexusPath(self, path, state):
-        newpath = state.data
-        ret = self.scr.nexus.refresh(newpath)
-        self.scr.format.update()
-        return ret
+    @validates("Save Config JSON File")
+    def validateSaveConfig(self, path, state):
+        return self.scr.savest
+
+    @validates("Load Config JSON File")
+    def validateLoadConfig(self, path, state):
+        return self.scr.loadst
 
     @validates("safety")
     def validateSafetyMenu(self, path, state):

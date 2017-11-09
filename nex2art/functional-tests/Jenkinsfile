@@ -1,0 +1,70 @@
+def tempFolder = "tmp"
+
+node (NODE) {
+
+    stage ('Clear workspace') {
+        sh "rm -rf ${env.WORKSPACE}/*"
+    }
+
+    stage ('Check environment requirements') {
+        sh "python --version"
+        sh "docker --version"
+        sh "ls -alt /var/run/docker.sock"
+        sh "ls -alt /usr/bin/docker"
+        sh "whoami"
+    }
+
+    stage ('Create temporary folder') {
+        dir ("${env.WORKSPACE}") {
+            sh "mkdir $tempFolder"
+        }
+    }
+
+    stage ('Clone sources') {
+        git url: 'https://github.com/JFrogDev/soldev.git', branch: 'nexus3support', credentialsId: 'b2b89a8c-7e6b-42b0-b9ba-9c8a13a5376a'
+    }
+
+    stage ('Fetch Artifactory License') {
+        def server = Artifactory.server 'solengha'
+        def downloadSpec = """{
+            "files":
+                [
+                    {
+                        "pattern": "artifactory-lic/lilypadart1.lic",
+                        "target": "${env.WORKSPACE}/nex2art/functional-tests/config/artifactory.lic"
+                    }
+                ]
+            }"""
+        server.download spec: downloadSpec
+    }
+
+    stage ('Create tests configuration file') {
+
+        dir ('nex2art/functional-tests/config') {
+
+            def fileContent = [
+                            '[General]',
+                            "tempFolder=${env.WORKSPACE}/$tempFolder",
+                            '[Artifactory]',
+                            'version=5.8.3',
+                            'exposedPort=8082',
+                            '[Nexus2]',
+                            'exposedPort=8081',
+                            '[Nexus3]',
+                            'exposedPort=8083',
+                            'dockerRegistryPort=8084',
+                            ]
+
+            sh 'touch settings.ini'
+            fileContent.each {
+                sh "echo '$it' >> settings.ini"
+            }
+        }
+    }
+
+    stage ("Functional tests") {
+        dir ('nex2art/functional-tests/') {
+            sh "python -m unittest discover -v -p '$TEST_CLASSES_PATTERN'"
+        }
+    }
+}

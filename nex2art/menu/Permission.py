@@ -1,10 +1,10 @@
 import logging
 from ..core import Menu
-from . import PermissionEdit
+from . import PermissionEdit, PermissionMassEdit
 
 class Permission(Menu):
     def __init__(self, scr, path):
-        Menu.__init__(self, scr, path, "Migrate Permissions")
+        Menu.__init__(self, scr, path, "Migrate Permissions", PermissionMassEdit)
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing Permission Menu.")
         self.opts = [

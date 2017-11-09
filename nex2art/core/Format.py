@@ -1,4 +1,5 @@
 import logging
+from . import Password
 
 class Format(object):
     def __init__(self, scr):
@@ -7,7 +8,10 @@ class Format(object):
 
     datamodel = {
         "Initial Setup": {
-            "Nexus Path": basestring,
+            "Nexus Data Directory": basestring,
+            "Nexus URL": basestring,
+            "Nexus Username": basestring,
+            "Nexus Password": basestring,
             "Artifactory URL": basestring,
             "Artifactory Username": basestring,
             "Artifactory Password": basestring
@@ -25,9 +29,7 @@ class Format(object):
                 "Max Unique Snapshots": basestring,
                 "Maven Snapshot Version Behavior": basestring,
                 "Remote URL": basestring
-            },
-            "Default Max Unique Snapshots": basestring,
-            "Hash All Artifacts": bool
+            }
         },
         "Security Migration Setup": {
             "Users Migration Setup": {
@@ -63,11 +65,13 @@ class Format(object):
                 }
             },
             "LDAP Migration Setup": {
-                "available": bool,
-                "LDAP Password": basestring,
-                "LDAP Setting Name": basestring,
-                "LDAP Group Name": basestring,
-                "Migrate LDAP": bool
+                None: {
+                    "available": bool,
+                    "LDAP Password": basestring,
+                    "LDAP Setting Name": basestring,
+                    "LDAP Group Name": basestring,
+                    "Migrate This LDAP Config": bool
+                }
             }
         }
     }
@@ -89,23 +93,32 @@ class Format(object):
             return True
         if not chop(newtree, self.datamodel):
             raise TypeError("Provided file is not a valid format.")
-        if "Repository Migration Setup" not in newtree: return
-        for repo in newtree["Repository Migration Setup"].values():
-            if not isinstance(repo, dict): continue
-            if "Repo Class" not in repo: continue
-            repoclass = repo["Repo Class"]
-            if repoclass not in ('local', 'remote'):
-                if "Handles Releases" in repo: del repo["Handles Releases"]
-                if "Handles Snapshots" in repo: del repo["Handles Snapshots"]
-                if "Suppresses Pom Consistency Checks" in repo:
-                    del repo["Suppresses Pom Consistency Checks"]
-                if "Max Unique Snapshots" in repo:
-                    del repo["Max Unique Snapshots"]
-            if repoclass != 'local':
-                if "Maven Snapshot Version Behavior" in repo:
-                    del repo["Maven Snapshot Version Behavior"]
-            if repoclass != 'remote':
-                if "Remote URL" in repo: del repo["Remote URL"]
+        if "Repository Migration Setup" in newtree:
+            for repo in newtree["Repository Migration Setup"].values():
+                if not isinstance(repo, dict): continue
+                if "Repo Class" not in repo: continue
+                repoclass = repo["Repo Class"]
+                if repoclass not in ('local', 'remote'):
+                    if "Handles Releases" in repo: del repo["Handles Releases"]
+                    if "Handles Snapshots" in repo: del repo["Handles Snapshots"]
+                    if "Suppresses Pom Consistency Checks" in repo:
+                        del repo["Suppresses Pom Consistency Checks"]
+                    if "Max Unique Snapshots" in repo:
+                        del repo["Max Unique Snapshots"]
+                if repoclass != 'local':
+                    if "Maven Snapshot Version Behavior" in repo:
+                        del repo["Maven Snapshot Version Behavior"]
+                if repoclass != 'remote':
+                    if "Remote URL" in repo: del repo["Remote URL"]
+        self.prune(newtree)
+
+    def prune(self, newtree):
+        if isinstance(newtree, list):
+            for v in newtree: self.prune(v)
+        elif isinstance(newtree, dict):
+            for k, v in newtree.items():
+                self.prune(v)
+                if v == {}: del newtree[k]
 
     def update(self):
         self.log.info("Updating data tree with Nexus data.")
@@ -113,13 +126,11 @@ class Format(object):
         self.updateusers()
         self.updategroups()
         self.updateperms()
-        self.updateldap()
+        self.updateldaps()
         self.setsave()
 
     def updaterepos(self):
         menu = self.scr.state["Repository Migration Setup"]
-        menu["Hash All Artifacts"].init(False)
-        menu["Default Max Unique Snapshots"].init('0')
         for repon, repo in menu.items():
             if repo.save != True or repo.isleaf(): continue
             repo["available"].data = False
@@ -148,7 +159,7 @@ class Format(object):
         menu["Handles Snapshots"].save = isreal
         menu["Suppresses Pom Consistency Checks"].init(False)
         menu["Suppresses Pom Consistency Checks"].save = isreal
-        menu["Max Unique Snapshots"].init(None)
+        menu["Max Unique Snapshots"].init('0')
         menu["Max Unique Snapshots"].save = isreal
         menu["Maven Snapshot Version Behavior"].init(repo['behavior'] if islocal else None)
         menu["Maven Snapshot Version Behavior"].save = islocal
@@ -163,7 +174,8 @@ class Format(object):
             user["available"].data = False
         users = self.scr.nexus.security.users
         if users == None: return
-        for user in users.values(): self.updateuser(user, menu)
+        for user in users.values():
+            if not user['builtin']: self.updateuser(user, menu)
 
     def updateuser(self, user, menu):
         isadmin, roles = False, []
@@ -191,7 +203,8 @@ class Format(object):
             group["available"].data = False
         groups = self.scr.nexus.security.roles
         if groups == None: return
-        for group in groups.values(): self.updategroup(group, menu)
+        for group in groups.values():
+            if not group['builtin']: self.updategroup(group, menu)
 
     def updategroup(self, group, menu):
         perms = {}
@@ -201,7 +214,7 @@ class Format(object):
             elif priv['type'] == 'application':
                 perms[priv['permission']] = '(' + priv['method'] + ')'
             elif priv['type'] == 'target':
-                perms[priv['privilege']['name']] = priv['methods']
+                perms[priv['priv']['name']] = priv['method']
         menu = menu[group['groupName']]
         menu["available"].data = True
         menu["Group Name (Nexus)"].data = group['groupName']
@@ -219,10 +232,11 @@ class Format(object):
             perm["available"].data = False
         perms = self.scr.nexus.security.privs
         if perms == None: return
-        for perm in perms.values(): self.updateperm(perm, menu)
+        for perm in perms.values():
+            if not perm['builtin']: self.updateperm(perm, menu)
 
     def updateperm(self, perm, menu):
-        inc, exc = perm['target']['defincpat'], perm['target']['defexcpat']
+        inc, exc = perm['defincpat'], perm['defexcpat']
         if inc == False: inc = []
         if exc == False: exc = []
         menu = menu[perm['name']]
@@ -231,31 +245,64 @@ class Format(object):
         menu["Permission Name (Nexus)"].save = False
         menu["Permission Name (Artifactory)"].init(perm['name'])
         menu["Migrate This Permission"].init(True)
-        menu["Repository"].data = perm['repo']
+        if 'repo' in perm: menu["Repository"].data = perm['repo']
+        else: menu["Repository"].data = None
         menu["Repository"].save = False
-        menu["Package Type"].data = perm['target']['ptype']
+        menu["Package Type"].data = perm['ptype']
         menu["Package Type"].save = False
-        menu["Nexus Regex Patterns"].data = perm['target']['patterns']
+        menu["Nexus Regex Patterns"].data = perm['patterns']
         menu["Nexus Regex Patterns"].save = False
         menu["Include Patterns"].init(inc)
         menu["Exclude Patterns"].init(exc)
 
-    def updateldap(self):
-        ldap = self.scr.nexus.ldap.ldap
+    def updateldaps(self):
         menu = self.scr.state["Security Migration Setup", "LDAP Migration Setup"]
-        menu["available"].data = ldap != None
-        if ldap == None: return
-        menu["Migrate LDAP"].init(True)
-        menu["LDAP Setting Name"].init('migratedNexusSetting')
-        menu["LDAP Group Name"].init('migratedNexusGroup')
-        if 'managerPassword' in ldap:
-            menu["LDAP Password"].init(ldap['managerPassword'])
+        for ldapn, ldap in menu.items():
+            if ldap.save != True or ldap.isleaf(): continue
+            ldap["available"].data = False
+        ldaps = self.scr.nexus.ldap.ldap
+        if ldaps == None: return
+        for ldap in ldaps.values(): self.updateldap(ldap, menu)
+
+    def updateldap(self, ldap, menu):
+        menu = menu[ldap['nexusName']]
+        menu["available"].data = True
+        menu["Migrate This LDAP Config"].init(True)
+        menu["LDAP Setting Name"].init(ldap['nexusName'])
+        menu["LDAP Group Name"].init(ldap['nexusName'] + '-group')
         if 'managerDn' in ldap:
             menu["LDAP Username"].data = ldap['managerDn']
             menu["LDAP Username"].save = False
+            menu["LDAP Password"].init(ldap['managerPassword'])
+            menu["LDAP Password"].save = True
+        else:
+            menu["LDAP Username"].data = None
+            menu["LDAP Username"].save = False
+            menu["LDAP Password"].data = None
+            menu["LDAP Password"].save = False
 
     def setsave(self):
         self.scr.state["safety"].save = False
         self.scr.state["safety", ""].data = "WARNING!"
-        self.scr.state["Save Configuration"].save = False
-        self.scr.state["Load Configuration"].save = False
+        self.scr.state["Save Config JSON File"].save = False
+        self.scr.state["Load Config JSON File"].save = False
+
+    def codePasswords(self, state, encode):
+        fields = []
+        initmenu = state["Initial Setup"]
+        secmenu = state["Security Migration Setup"]
+        ldapmenu = secmenu["LDAP Migration Setup"]
+        usermenu = secmenu["Users Migration Setup"]
+        fields.append(initmenu["Artifactory Password"])
+        fields.append(initmenu["Nexus Password"])
+        fields.append(usermenu["Default Password"])
+        for ldapn, ldap in ldapmenu.items():
+            if ldap.save != True or ldap.isleaf(): continue
+            fields.append(ldap["LDAP Password"])
+        for usern, user in usermenu.items():
+            if user.save != True or user.isleaf(): continue
+            fields.append(user["Password"])
+        crypt = Password.encrypt if encode else Password.decrypt
+        for field in fields:
+            if field.isleaf() and isinstance(field.data, basestring):
+                field.data = crypt(field.data)
