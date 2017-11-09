@@ -218,5 +218,17 @@ Artifactory user interface, after the migration is complete. A major exception
 to this is if the tool chooses the wrong package type for a repository. If a
 package type needs to be fixed after migration, [packageType.py][] might help.
 
+Unit Testing
+------------------
+This project uses Python's [unittest framework](https://docs.python.org/2/library/unittest.html). To run the unit tests, you can use your favorite IDE or run them from the command line. 
+
+To run the unit tests from the command line (requires 2.7+):
+
+```$xslt
+cd nex2art/tests
+python -m  unittest discover -v -p "*Test.py"
+
+```
+
 [packageType.py]:
 https://github.com/JFrogDev/artifactory-scripts/tree/master/4.x-migration

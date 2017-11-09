@@ -21,7 +21,8 @@ class Nexus(object):
         self.security.initialize()
         if path == None: return True
         path = os.path.abspath(path)
-        caps = self.getYumCapabilities(path)
+        xmlcap = os.path.join(path, 'conf', 'capabilities.xml')
+        caps = self.getYumCapabilities(xmlcap)
         config = os.path.join(path, 'conf', 'nexus.xml')
         self.log.info("Reading Nexus config from %s.", config)
         if not os.path.isfile(config):
@@ -110,8 +111,7 @@ class Nexus(object):
         elif hint == 'maven2': hint, layout = 'maven', 'maven-2'
         return hint, layout + '-default'
 
-    def getYumCapabilities(self, path):
-        xml = os.path.join(path, 'conf', 'capabilities.xml')
+    def getYumCapabilities(self, xml):
         if not os.path.isfile(xml): return []
         root = ET.parse(xml).getroot()
         caps = root.find('capabilities')
