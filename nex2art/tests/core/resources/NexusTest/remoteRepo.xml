@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository>
+    <id>apache-snapshots</id>
+    <name>Apache Snapshots</name>
+    <providerRole>org.sonatype.nexus.proxy.repository.Repository</providerRole>
+    <providerHint>maven2</providerHint>
+    <localStatus>IN_SERVICE</localStatus>
+    <notFoundCacheActive>true</notFoundCacheActive>
+    <notFoundCacheTTL>1440</notFoundCacheTTL>
+    <userManaged>true</userManaged>
+    <exposed>true</exposed>
+    <browseable>true</browseable>
+    <writePolicy>READ_ONLY</writePolicy>
+    <indexable>true</indexable>
+    <searchable>true</searchable>
+    <localStorage>
+        <provider>file</provider>
+    </localStorage>
+    <remoteStorage>
+        <url>https://jcenter.bintray.com/</url>
+    </remoteStorage>
+    <externalConfiguration>
+        <proxyMode>ALLOW</proxyMode>
+        <artifactMaxAge>1440</artifactMaxAge>
+        <itemMaxAge>1440</itemMaxAge>
+        <cleanseRepositoryMetadata>false</cleanseRepositoryMetadata>
+        <downloadRemoteIndex>false</downloadRemoteIndex>
+        <checksumPolicy>WARN</checksumPolicy>
+        <repositoryPolicy>SNAPSHOT</repositoryPolicy>
+    </externalConfiguration>
+</repository>

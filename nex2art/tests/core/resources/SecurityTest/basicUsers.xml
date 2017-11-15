@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<security>
+    <version>2.0.5</version>
+    <users>
+        <user>
+            <id>anonymous</id>
+            <firstName>Nexus</firstName>
+            <lastName>Anonymous User</lastName>
+            <password>$shiro1$SHA-512$1024$245euG2SvLRkigalmIdeRQ==$NhXwyE5nibG2S+sFNWdukJGBsHzOKhPDtLLn+exnyHss4xggBTIjlFR0k0eg43DzeeORQj2//FW4TRoKbqIaGw==</password>
+            <status>active</status>
+            <email>foo@yourcompany.com</email>
+        </user>
+        <user>
+            <id>admin</id>
+            <firstName>Administrator</firstName>
+            <lastName>User</lastName>
+            <password>$shiro1$SHA-512$1024$gZDXBy5UK8QULUjxU4h5cg==$8thhdRw4nPA6QxFuS+8qQHaC7OMWhdsJ33uPsmae0gJDcQr8TJrXCiQDKJnw+wxmE7K3nWn1ShYtqMrDaqCHoQ==</password>
+            <status>active</status>
+            <email>bar@yourcompany.com</email>
+        </user>
+    </users>
+    <roles>
+        <role>
+            <id>test-role</id>
+            <name>Test Role</name>
+            <description>This is a test role</description>
+            <privileges>
+                <privilege>2</privilege>
+            </privileges>
+            <roles>
+                <role>any-all-view</role>
+                <role>ui-basic</role>
+                <role>ui-plugin-console</role>
+                <role>npm-all-read</role>
+                <role>npm-all-view</role>
+            </roles>
+        </role>
+    </roles>
+    <privileges>
+        <privilege>
+            <id>da86c31efbd</id>
+            <name>test-permission-priv - (create)</name>
+            <description>A test permission privilege</description>
+            <type>target</type>
+            <properties>
+                <property>
+                    <key>repositoryTargetId</key>
+                    <value>4</value>
+                </property>
+                <property>
+                    <key>method</key>
+                    <value>create,read</value>
+                </property>
+                <property>
+                    <key>repositoryId</key>
+                    <value>paco1</value>
+                </property>
+                <property>
+                    <key>repositoryGroupId</key>
+                    <value></value>
+                </property>
+            </properties>
+        </privilege>
+        <privilege>
+            <id>da86cd557d7</id>
+            <name>test-permission-priv - (read)</name>
+            <description>A test permission privilege</description>
+            <type>target</type>
+            <properties>
+                <property>
+                    <key>repositoryTargetId</key>
+                    <value>4</value>
+                </property>
+                <property>
+                    <key>method</key>
+                    <value>read</value>
+                </property>
+                <property>
+                    <key>repositoryId</key>
+                    <value>paco1</value>
+                </property>
+                <property>
+                    <key>repositoryGroupId</key>
+                    <value></value>
+                </property>
+            </properties>
+        </privilege>
+        <privilege>
+            <id>da86d5a5afe</id>
+            <name>test-permission-priv - (update)</name>
+            <description>A test permission privilege</description>
+            <type>target</type>
+            <properties>
+                <property>
+                    <key>repositoryTargetId</key>
+                    <value>4</value>
+                </property>
+                <property>
+                    <key>method</key>
+                    <value>update,read</value>
+                </property>
+                <property>
+                    <key>repositoryId</key>
+                    <value>paco1</value>
+                </property>
+                <property>
+                    <key>repositoryGroupId</key>
+                    <value></value>
+                </property>
+            </properties>
+        </privilege>
+        <privilege>
+            <id>da86dce7b28</id>
+            <name>test-permission-priv - (delete)</name>
+            <description>A test permission privilege</description>
+            <type>target</type>
+            <properties>
+                <property>
+                    <key>repositoryTargetId</key>
+                    <value>4</value>
+                </property>
+                <property>
+                    <key>method</key>
+                    <value>delete,read</value>
+                </property>
+                <property>
+                    <key>repositoryId</key>
+                    <value>paco1</value>
+                </property>
+                <property>
+                    <key>repositoryGroupId</key>
+                    <value></value>
+                </property>
+            </properties>
+        </privilege>
+    </privileges>
+    <userRoleMappings>
+        <userRoleMapping>
+            <userId>anonymous</userId>
+            <source>default</source>
+            <roles>
+                <role>repository-any-read</role>
+                <role>anonymous</role>
+            </roles>
+        </userRoleMapping>
+        <userRoleMapping>
+            <userId>admin</userId>
+            <source>default</source>
+            <roles>
+                <role>nx-admin</role>
+            </roles>
+        </userRoleMapping>
+    </userRoleMappings>
+</security>
