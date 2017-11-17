@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository>
+    <id>central-m1</id>
+    <name>Central M1 shadow</name>
+    <providerRole>org.sonatype.nexus.proxy.repository.ShadowRepository</providerRole>
+    <providerHint>m2-m1-shadow</providerHint>
+    <localStatus>IN_SERVICE</localStatus>
+    <notFoundCacheTTL>15</notFoundCacheTTL>
+    <userManaged>true</userManaged>
+    <exposed>true</exposed>
+    <browseable>true</browseable>
+    <writePolicy>READ_ONLY</writePolicy>
+    <localStorage>
+        <provider>file</provider>
+    </localStorage>
+    <externalConfiguration>
+        <masterRepositoryId>central</masterRepositoryId>
+        <syncAtStartup>false</syncAtStartup>
+    </externalConfiguration>
+</repository>

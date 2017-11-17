@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository>
+    <id>paco1</id>
+    <name>paco</name>
+    <providerRole>org.sonatype.nexus.proxy.repository.Repository</providerRole>
+    <providerHint>maven2</providerHint>
+    <localStatus>IN_SERVICE</localStatus>
+    <notFoundCacheTTL>1440</notFoundCacheTTL>
+    <userManaged>true</userManaged>
+    <exposed>true</exposed>
+    <browseable>true</browseable>
+    <writePolicy>ALLOW_WRITE_ONCE</writePolicy>
+    <indexable>true</indexable>
+    <searchable>true</searchable>
+    <localStorage>
+        <provider>file</provider>
+        <url>/Users/arturoa/paco</url>
+    </localStorage>
+    <externalConfiguration>
+        <repositoryPolicy>RELEASE</repositoryPolicy>
+    </externalConfiguration>
+</repository>
