@@ -6,9 +6,8 @@ Artifactory. It provides a simple wizard-like interface that allows you to
 easily configure and run a migration of repositories, artifacts, users, and
 settings from a Nexus instance to an Artifactory instance.
 
-This tool is still in very early development, and may not yet have support for
-everything that might need to be migrated. See the bottom of this page for
-further details.
+This tool is currently incomplete, and may not yet have support for everything
+that might need to be migrated. See the bottom of this page for further details.
 
 Currently, the following data can be migrated:
 - local (hosted), remote (proxy), and virtual (group) repositories
@@ -202,9 +201,9 @@ options:
 Future Development
 ------------------
 
-This tool is still in early development, and plenty of features are not yet
-implemented. The following is an incomplete list of features that are currently
-in development, and should be added to the tool soon:
+This tool is currently incomplete, and plenty of features are not yet
+implemented. The following is a list of features that are currently in
+development, and should be added to the tool soon:
 - migrate scheduled tasks
 - migrate other instance-wide settings (email settings, proxy settings, etc)
 - support paid Nexus features, such as custom metadata
@@ -213,7 +212,7 @@ in development, and should be added to the tool soon:
 - obfuscate passwords in save files
 - support Nexus 3
 
-Nearly everything the tool does not yet update can be fixed manually via the
+Nearly everything the tool does not yet migrate can be fixed manually via the
 Artifactory user interface, after the migration is complete. A major exception
 to this is if the tool chooses the wrong package type for a repository. If a
 package type needs to be fixed after migration, [packageType.py][] might help.

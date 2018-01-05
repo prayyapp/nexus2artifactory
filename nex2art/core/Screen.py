@@ -1,4 +1,5 @@
 import sys
+import json
 import logging
 import textwrap
 import unicurses
@@ -15,30 +16,63 @@ class Screen(object):
     # the entire available screen.
     def __init__(self, screen, args):
         self.log = logging.getLogger(__name__)
-        self.log.debug("Initializing curses screen.")
-        self.ctrlchars = (unicurses.KEY_RESIZE, unicurses.KEY_ENTER, ord('\n'), ord('\x1b'))
+        self.log.debug("Initializing screen.")
+        self.interactive = not args.non_interactive
+        if self.interactive:
+            res, ret = unicurses.KEY_RESIZE, unicurses.KEY_ENTER
+            self.ctrlchars = (res, ret, ord('\n'), ord('\x1b'))
+            self.msg = None
+            self.screen = screen
+            self.h, self.w = 22, 78
+            self.wrap = textwrap.TextWrapper(width=self.w - 1)
+            self.initattrs()
+            self.frame = unicurses.newwin(self.h + 2, self.w + 2, 0, 0)
+            unicurses.wborder(self.frame)
+            self.win = unicurses.newwin(self.h, self.w, 0, 0)
+            unicurses.keypad(self.win, 1)
         self.sslnoverify = sys.version_info >= (2, 7, 9) and args.ssl_no_verify
-        self.msg = None
-        self.screen = screen
+        self.loadst, self.savest = True, True
         self.state = DataTree(self, {})
         self.oldstate = DataTree(self, {})
         self.validate = Validate(self)
         self.format = Format(self)
-        self.h, self.w = 22, 78
         self.nexus = Nexus()
         self.artifactory = Artifactory(self)
-        self.wrap = textwrap.TextWrapper(width=self.w - 1)
-        self.initattrs()
-        self.frame = unicurses.newwin(self.h + 2, self.w + 2, 0, 0)
-        unicurses.wborder(self.frame)
-        self.win = unicurses.newwin(self.h, self.w, 0, 0)
-        unicurses.keypad(self.win, 1)
-        self.log.debug("Curses screen initialized.")
+        self.initstate(args.load_file)
+        self.log.debug("Screen initialized.")
 
     def modified(self):
         self.state.prune()
         self.oldstate.prune()
         return self.state != self.oldstate
+
+    def initstate(self, path):
+        if path == None: return
+        self.log.info("Loading configuration from file %s.", path)
+        f, stat = None, None
+        try:
+            f = open(path, 'r')
+            data = json.load(f)
+            self.format.trim(data)
+            self.state = DataTree(self, data)
+            self.validate()
+            if self.state.valid == True:
+                self.log.info("Configuration loaded successfully.")
+            else:
+                self.log.warning("Configuration loaded, errors found.")
+            self.oldstate = self.state.clone()
+            stat = True
+        except:
+            self.log.exception("Error loading configuration:")
+            stat = "Unable to load from specified file."
+        finally:
+            if f != None: f.close()
+        loadopt = self.state["Load Configuration"]
+        saveopt = self.state["Save Configuration"]
+        loadopt.data = path
+        self.loadst = stat
+        if stat == True: saveopt.data = path
+        elif self.interactive: self.msg = ('err', stat)
 
     # Initialize the text attributes which will be used by this tool. Most of
     # these will be bold and some color.

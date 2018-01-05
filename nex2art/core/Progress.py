@@ -6,8 +6,9 @@ class Progress(object):
         self.scr = scr
         self.current = None
         self.currentartifact = None
-        self.title = "Running Migration ... "
-        self.title = ' '*(self.scr.w - len(self.title)) + self.title
+        if self.scr.interactive:
+            self.title = "Running Migration ... "
+            self.title = ' '*(self.scr.w - len(self.title)) + self.title
         self.started = None
         self.stepsmap = {}
         self.steps = []
@@ -22,6 +23,8 @@ class Progress(object):
 
     def show(self, conf):
         self.started = time.time()
+        if not self.scr.interactive:
+            return self.scr.artifactory.migrate(self, conf)
         self.render()
         unicurses.wrefresh(self.scr.win)
         result = self.scr.artifactory.migrate(self, conf)
@@ -29,8 +32,34 @@ class Progress(object):
         return result
 
     def refresh(self):
+        if not self.scr.interactive: return
         self.render()
         unicurses.wrefresh(self.scr.win)
+
+    def logsession(self):
+        log = []
+        log.append("\nMigration Summary:\n\n")
+        for step in self.steps:
+            name, done, total, errors, artifacts = step
+            stat = None
+            if errors > 0: stat = " ! "
+            elif done == True or done >= total: stat = " + "
+            elif done == False or done <= 0: stat = "   "
+            else: stat = " ~ "
+            log.append(stat)
+            stats = []
+            stat = name + ' '*(15 - len(name))
+            if total != None: stats.append(str(done) + '/' + str(total))
+            if artifacts != None: stats.append(str(artifacts) + " Total")
+            stat += ", ".join(stats)
+            if errors > 0 and len(stats) > 0: stat += ", "
+            log.append(stat)
+            if errors > 0: log.append(str(errors) + " Errors")
+            log.append("\n")
+        timerep = self.drawTime(int(round(time.time() - self.started)))
+        log.append("\n Migration Successful!")
+        log.append("\n Completed in " + timerep + "\n")
+        self.scr.log.info(''.join(log))
 
     def render(self, result=None):
         unicurses.wclear(self.scr.win)

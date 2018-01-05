@@ -98,9 +98,13 @@ class Upload(object):
             stat = None
             metadata = self.acquireMetadata(path, metapath, hashall)
             modif, store, sha1, md5 = metadata
-            if modif != None and modif < self.ts:
-                self.incFileCount(repo + ':' + store)
-                continue
+            # TODO This code skips migration when an artifact's timestamp is
+            # prior to the last run's timestamp. This correctly skips artifacts
+            # that have been migrated, but it also skips artifacts that failed
+            # to migrate. This code is disabled until we find a better solution.
+            # if modif != None and modif < self.ts:
+            #     self.incFileCount(repo + ':' + store)
+            #     continue
             puturl = url + urllib.quote(repo + store)
             chksumheaders = {'X-Checksum-Deploy': 'true'}
             chksumheaders['X-Checksum-Sha1'] = sha1

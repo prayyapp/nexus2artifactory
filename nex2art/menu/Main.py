@@ -66,7 +66,9 @@ class Main(Menu):
     # Serialize the current configuration state as a JSON object, and save it to
     # a file. The parameter 'sel' is the menu option that ran this function.
     def save(self, sel):
-        if sel['val'] == None: return
+        if sel['val'] == None:
+            self.savest = True
+            return
         self.log.info("Saving configuration to file %s.", sel['val'])
         f = None
         try:
@@ -78,14 +80,13 @@ class Main(Menu):
             self.log.info("Configuration saved successfully.")
             self.scr.msg = ('val', "Successfully saved to specified file.")
             self.scr.oldstate = self.scr.state.clone()
-            sel['stat'] = True
+            self.scr.savest = True
         except:
             self.log.exception("Error saving configuration:")
-            self.scr.msg = ('err', "Unable to save to specified file.")
-            sel['stat'] = False
+            self.scr.savest = "Unable to save to specified file."
         finally:
             if f != None: f.close()
-        if sel['stat'] == True and self.loadopt['val'] == None:
+        if self.scr.savest == True and self.loadopt['val'] == None:
             self.loadopt['val'] = sel['val']
 
     # Before loading a JSON object from a file, if there are unsaved changes,
@@ -98,7 +99,9 @@ class Main(Menu):
     # menu option that ran this function.
     def load(self, sel):
         path, f = sel['val'], None
-        if path == None: return
+        if path == None:
+            self.scr.loadst = True
+            return
         self.log.info("Loading configuration from file %s.", path)
         try:
             f = open(path, 'r')
@@ -113,13 +116,12 @@ class Main(Menu):
                 self.log.warning("Configuration loaded, errors found.")
                 self.scr.msg = ('err', "Configuration loaded, errors found.")
             self.scr.oldstate = self.scr.state.clone()
-            sel['stat'] = True
+            self.scr.loadst = True
         except:
             self.log.exception("Error loading configuration:")
-            self.scr.msg = ('err', "Unable to load from specified file.")
-            sel['stat'] = False
+            self.scr.loadst = "Unable to load from specified file."
         finally:
             if f != None: f.close()
-        if sel['stat'] == True and self.saveopt['val'] == None:
+        if self.scr.loadst == True and self.saveopt['val'] == None:
             self.saveopt['val'] = path
             sel['val'] = path
