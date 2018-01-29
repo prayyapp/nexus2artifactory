@@ -21,7 +21,7 @@ node (NODE) {
     }
 
     stage ('Clone sources') {
-        git url: 'https://github.com/JFrogDev/soldev.git', branch: 'nexus3support', credentialsId: 'b2b89a8c-7e6b-42b0-b9ba-9c8a13a5376a'
+        git url: 'https://github.com/JFrogDev/nexus2artifactory.git', branch: 'master', credentialsId: 'b2b89a8c-7e6b-42b0-b9ba-9c8a13a5376a'
     }
 
     stage ('Fetch Artifactory License') {
