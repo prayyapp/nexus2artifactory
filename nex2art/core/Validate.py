@@ -78,7 +78,7 @@ class Validate(object):
 
     @validates("Repository Migration Setup/.")
     def validateRepo(self, path, state):
-        if state.save == False: return None
+        if state.save == False or state.isleaf(): return None
         if state["Migrate This Repo"].data: return None
         return True
 
@@ -125,10 +125,6 @@ class Validate(object):
         if newurl != None: return True
         return "Remote URL must not be blank."
 
-    @validates("Default Password")
-    def defaultPasswordStub(self, path, state):
-        return None
-
     @validates("Users Migration Setup")
     def validateDefaultPassword(self, path, state):
         newpasw = state["Default Password"]
@@ -148,7 +144,7 @@ class Validate(object):
 
     @validates("Users Migration Setup/.")
     def validateUser(self, path, state):
-        if state.save == False: return None
+        if state.save == False or state.isleaf(): return None
         newpasw = state["Password"].data
         newadmin = state["Is An Administrator"].data
         if newpasw != None or newadmin == False: paswval = True
@@ -208,7 +204,7 @@ class Validate(object):
 
     @validates("Groups Migration Setup/.")
     def validateGroup(self, path, state):
-        if state.save == False: return None
+        if state.save == False or state.isleaf(): return None
         if state["Migrate This Group"].data: return None
         return True
 
@@ -224,7 +220,7 @@ class Validate(object):
 
     @validates("Permissions Migration Setup/.")
     def validatePermission(self, path, state):
-        if state.save == False: return None
+        if state.save == False or state.isleaf(): return None
         if state["Migrate This Permission"].data: return None
         return True
 
@@ -242,7 +238,7 @@ class Validate(object):
 
     @validates("LDAP Migration Setup/.")
     def validateLDAP(self, path, state):
-        if state.save == False: return None
+        if state.save == False or state.isleaf(): return None
         if state["Migrate This LDAP Config"].data: return None
         return True
 
