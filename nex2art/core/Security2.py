@@ -92,6 +92,7 @@ class Security2(object):
         for userxml in xmlusers.findall('user'):
             user = {'builtin': False}
             user['username'] = userxml.find('id').text
+            if user['username'] == 'anonymous': continue
             user['email'] = userxml.find('email').text
             user['enabled'] = userxml.find('status').text == 'active'
             users[user['username']] = user
@@ -100,6 +101,7 @@ class Security2(object):
         for mapxml in urmxml.findall('userRoleMapping'):
             user = {'email': None, 'enabled': True, 'builtin': False}
             user['username'] = mapxml.find('userId').text
+            if user['username'] == 'anonymous': continue
             if user['username'] in users: user = users[user['username']]
             user['realm'] = mapxml.find('source').text.lower()
             if user['realm'] == 'default': user['realm'] = 'internal'

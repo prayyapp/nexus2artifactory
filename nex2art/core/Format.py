@@ -187,7 +187,7 @@ class Format(object):
         menu["User Name (Nexus)"].data = user['username']
         menu["User Name (Nexus)"].save = False
         menu["User Name (Artifactory)"].init(user['username'])
-        menu["Migrate This User"].init(True)
+        menu["Migrate This User"].init(user['username'] != 'admin')
         menu["Realm"].data = user['realm']
         menu["Realm"].save = False
         menu["Email Address"].init(user['email'])

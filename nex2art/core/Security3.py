@@ -80,6 +80,7 @@ class Security3(object):
             for role in roles.values(): self.flattenrole(role, roles)
             for user in data['users']:
                 userdata = self.getuser(user, roles)
+                if userdata['username'] == 'anonymous': continue
                 if user['source'] == 'LDAP':
                     rs = map(lambda x: x['groupName'], userdata['roles'])
                     if ldaproles >= set(rs): continue
