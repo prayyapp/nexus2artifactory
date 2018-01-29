@@ -250,8 +250,8 @@ class Format(object):
         menu["Repository"].save = False
         menu["Package Type"].data = perm['ptype']
         menu["Package Type"].save = False
-        menu["Nexus Regex Patterns"].data = perm['patterns']
-        menu["Nexus Regex Patterns"].save = False
+        menu["Nexus Patterns"].data = perm['patterns']
+        menu["Nexus Patterns"].save = False
         menu["Include Patterns"].init(inc)
         menu["Exclude Patterns"].init(exc)
 

@@ -15,7 +15,7 @@ class PermissionEdit(Menu):
             None,
             self.mkopt('INFO', "Repository", None),
             self.mkopt('INFO', "Package Type", None),
-            self.mkopt('p', "Nexus Regex Patterns", rxpat, save=False),
+            self.mkopt('p', "Nexus Patterns", rxpat, save=False),
             self.mkopt('i', "Include Patterns", inpat, save=True),
             self.mkopt('x', "Exclude Patterns", expat, save=True),
             self.mkopt('r', "Reset Patterns", self.resetpatterns, save=False),

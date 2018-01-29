@@ -208,25 +208,26 @@ Artifactory cannot dynamically apply a permission by package type, if this field
 is not ALL, this permission will be applied statically to the appropriate
 repositories during migration. This means that any newly created Artifactory
 repositories will not have this permission automatically.""",
-    "Nexus Regex Patterns": """
-The regex patterns for this Nexus privilege. Include and exclude patterns are
-generated from this by default, if possible. This field is not editable, and
-primarily exists as a reference.""",
+    "Nexus Patterns": """
+The patterns for this Nexus privilege. Depending on the Nexus version, this is
+either regex, JEXL, or CSEL. Include and exclude patterns are generated from
+this by default, if possible. This field is not editable, and primarily exists
+as a reference.""",
     "Include Patterns": """
-The include patterns for this permission. This is generated from the Nexus regex
+The include patterns for this permission. This is generated from the Nexus
 patterns by default, if possible. Otherwise, this field must be set explicitly.
 These are Apache Ant-style wildcard patterns (wildcards are ?, *, and **). A
 matching path matches at least one include pattern, and exactly zero exclude
 patterns.""",
     "Exclude Patterns": """
-The exclude patterns for this permission. This is generated from the Nexus regex
+The exclude patterns for this permission. This is generated from the Nexus
 patterns by default, if possible. Otherwise, this field must be set explicitly.
 These are Apache Ant-style wildcard patterns (wildcards are ?, *, and **). A
 matching path matches at least one include pattern, and exactly zero exclude
 patterns.""",
     "Reset Patterns": """
 Set the include and exclude patterns back to their default values, which are
-computed from the Nexus regex patterns.""",
+computed from the Nexus patterns.""",
     # Edit Privilege Method Menu
     "Read Permissions": """
 Permission to read and download artifacts.""",
