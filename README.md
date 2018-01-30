@@ -38,7 +38,7 @@ Alternatively, Windows users may avoid installing any dependencies by
 downloading the self-contained [exe file][].
 
 [PDCurses]: http://pdcurses.sourceforge.net/
-[exe file]: https://raw.githubusercontent.com/JFrogDev/nexus2artifactory/master/NexusToArtifactory.exe
+[exe file]: https://github.com/JFrogDev/nexus2artifactory/raw/master/NexusToArtifactory.exe
 
 Usage
 -----
