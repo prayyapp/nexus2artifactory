@@ -51,7 +51,8 @@ except ImportError:
     else:
         pdcursesdll = "pdcurses.dll"
         try:
-            pdcursesdll = os.path.join(sys._MEIPASS, "pdcurses.dll")
+            if hasattr(sys, '_MEIPASS'):
+                pdcursesdll = os.path.join(sys._MEIPASS, "pdcurses.dll")
         except:
             pass
         if not os.access(pdcursesdll,os.F_OK):

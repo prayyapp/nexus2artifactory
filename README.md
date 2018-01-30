@@ -21,19 +21,31 @@ the disk. Therefore, the tool should be installed on the computer running the
 Nexus instance, or on a computer with access to the filesystem that the Nexus
 instance is installed on.
 
-First, install the dependencies:
-- the latest version of [Python 2][]
-- the latest version of [PDCurses][] (on Windows only)
+First, install the latest version of [Python 2][]. Then, [download][] or clone
+this repository.
 
-[Python 2]:  https://www.python.org/downloads/
-[PDCurses]:  http://pdcurses.sourceforge.net/
+[Python 2]: https://www.python.org/downloads/
+[download]: https://github.com/JFrogDev/nexus2artifactory/archive/master.zip
 
-Then, clone this repository.
+### Windows Installation ###
+
+This tool's interface uses the `ncurses` library, which is standard in Linux and
+MacOS, but not readily available in Windows. Instead, the tool can use the
+`PDCurses` library as an alternative. This means that Windows users must also
+have the latest version of [PDCurses][] to run the tool.
+
+Alternatively, Windows users may avoid installing any dependencies by
+downloading the self-contained [exe file][].
+
+[PDCurses]: http://pdcurses.sourceforge.net/
+[exe file]: https://raw.githubusercontent.com/JFrogDev/nexus2artifactory/master/NexusToArtifactory.exe
 
 Usage
 -----
 
 To run the tool, run `./NexusToArtifactory.py`.
+
+If using the included Windows exe file, instead run `NexusToArtifactory.exe`.
 
 ![Main Menu Screenshot](doc/mainMenu.png)
 
