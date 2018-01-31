@@ -2,7 +2,6 @@ import os
 import re
 import ssl
 import json
-import time
 import Queue
 import base64
 import logging
@@ -29,14 +28,12 @@ class Upload(object):
         self.npm = Npm()
         self.gems = Gems()
         self.filelock = threading.RLock()
-        self.threadct = 4
-        self.ts = 0
-        self.max_attempts = 3
+        self.threadct = self.scr.args.threads
+        self.max_attempts = self.scr.args.retries
 
     def upload(self, conf):
         self.log.info("Uploading artifacts.")
         self.parent.prog.current = "Uploading artifact:"
-        newts = int(1000*time.time())
         url, headers = self.getconndata()
         queue = Queue.Queue(2*self.threadct)
         thargs = queue, url, headers
@@ -54,7 +51,6 @@ class Upload(object):
         for _ in threads: queue.put(None)
         for t in threads: t.join()
         self.log.info("All artifacts successfully uploaded.")
-        self.ts = newts
         self.parent.prog.stepsmap['Artifacts'][1] = True
         self.parent.prog.currentartifact = None
 

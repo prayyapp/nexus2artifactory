@@ -17,6 +17,22 @@ class NilHandler(logging.Handler):
     def createLock(self):
         self.lock = None
 
+class Dots(object):
+    def __str__(self):
+        return '...'
+
+    def __repr__(self):
+        return '...'
+
+class PosIntFilter(object):
+    def __contains__(self, item):
+        return isinstance(item, int) and item > 0
+
+    def __iter__(self):
+        yield 1
+        yield 2
+        yield Dots()
+
 class Setup(object):
     def __init__(self, argssource):
         self.argssource = argssource
@@ -70,18 +86,25 @@ class Setup(object):
             "whether to disable ssl verification (e.g. for self-signed certs)",
             "the configuration file to load automatically on start",
             "migrate immediately without displaying the UI (requires -f)",
-            "Turn off logs output for non interactive mode"]
+            "suppress logging to the console in non-interactive mode",
+            "maximum number of attempts to upload each artifact before failure",
+            "number of threads to use when migrating artifacts"]
         chcs = 'error', 'warning', 'info', 'debug'
+        filt = PosIntFilter()
         parser = argparse.ArgumentParser(description=help[0])
         parser.add_argument('-l', '--log-file', help=help[1])
-        parser.add_argument('-q', '--silent',
-                            action='store_true', help=help[6])
-        parser.add_argument('-v', '--log-level', choices=chcs, help=help[2])
+        parser.add_argument('-v', '--log-level', choices=chcs,
+                            default='info', help=help[2])
         parser.add_argument('-s', '--ssl-no-verify',
                             action='store_true', help=help[3])
         parser.add_argument('-f', '--load-file', help=help[4])
         parser.add_argument('-n', '--non-interactive',
                             action='store_true', help=help[5])
+        parser.add_argument('-q', '--silent', action='store_true', help=help[6])
+        parser.add_argument('-r', '--retries', type=int, choices=filt,
+                            default=3, help=help[7])
+        parser.add_argument('-t', '--threads', type=int, choices=filt,
+                            default=4, help=help[8])
         args = parser.parse_args(self.argssource)
         if args.load_file == None and args.non_interactive:
             parser.error("option --load-file is required for non-interactive mode")

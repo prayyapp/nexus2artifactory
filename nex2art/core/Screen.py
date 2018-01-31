@@ -17,6 +17,7 @@ class Screen(object):
     def __init__(self, screen, args):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing screen.")
+        self.args = args
         self.interactive = not args.non_interactive
         if self.interactive:
             res, ret = unicurses.KEY_RESIZE, unicurses.KEY_ENTER
