@@ -239,7 +239,7 @@ class Upload(object):
         try:
             artifactheaders['Content-Length'] = str(os.stat(path).st_size)
             artifactheaders.update(headers)
-            with open(path, 'r') as f:
+            with open(path, 'rb') as f:
                 self.log.info("Uploading artifact to %s.", url)
                 req = PutRequest(url, f, artifactheaders)
                 try:
