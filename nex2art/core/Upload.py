@@ -35,6 +35,7 @@ class Upload(object):
 
     def upload(self, conf):
         self.log.info("Uploading artifacts.")
+        self.parent.prog.current = "Uploading artifact:"
         newts = int(1000*time.time())
         url, headers = self.getconndata()
         queue = Queue.Queue(2*self.threadct)
@@ -55,6 +56,7 @@ class Upload(object):
         self.log.info("All artifacts successfully uploaded.")
         self.ts = newts
         self.parent.prog.stepsmap['Artifacts'][1] = True
+        self.parent.prog.currentartifact = None
 
     def getconndata(self):
         urlp = self.parent.url

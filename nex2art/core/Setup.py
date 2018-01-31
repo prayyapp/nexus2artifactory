@@ -4,6 +4,19 @@ import logging
 import argparse
 from functools import wraps
 
+# Windows seems to have an issue with writing some logs to curses window if
+# there are no handlers specified. This handler does nothing, but it prevents
+# that issue.
+class NilHandler(logging.Handler):
+    def handle(self, record):
+        pass
+
+    def emit(self, record):
+        pass
+
+    def createLock(self):
+        self.lock = None
+
 class Setup(object):
     def __init__(self, argssource):
         self.argssource = argssource
@@ -25,9 +38,10 @@ class Setup(object):
 
     def startlogging(self, args):
         logfile = args.log_file
-        noninteractive = args.non_interactive
-        silent = args.silent
-        if (logfile == None and not noninteractive) or silent: return
+        noninteractive = args.non_interactive and not args.silent
+        if logfile == None and not noninteractive:
+            logging.getLogger().addHandler(NilHandler())
+            return
         level = logging.INFO
         if args.log_level == 'error': level = logging.ERROR
         elif args.log_level == 'warning': level = logging.WARNING
