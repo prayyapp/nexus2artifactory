@@ -244,6 +244,12 @@ following commandline options:
   printed.
 
 Other commandline options are as follows:
+- `-r`, `--retries`: When migrating artifacts, a deploy might fail for some
+  ephemeral reason (conflicts with in-progress metadata calculation, network
+  issues, etc). This specifies the maximum number of times the tool will attempt
+  to deploy each artifact before migration of that artifact fails. Default is 3.
+- `-t`, `--threads`: The number of threads used to migrate artifacts. Default is
+  4.
 - `-s`, `--ssl-no-verify`: Disable SSL verification. This is useful if your
   Artifactory and/or Nexus 3 instance uses a self-signed SSL certificate.
 - `-h`, `--help`: Print help message, which describes all of these options.
