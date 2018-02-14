@@ -100,6 +100,7 @@ def getPermissionData() {
 def getSelectorData() {
     def selman = container.lookup('org.sonatype.nexus.selector.SelectorManager')
     def sellist = []
+    if (selman == null) return sellist
     for (sel in selman.browse()) {
         def selitem = [:]
         selitem.name = sel.name
