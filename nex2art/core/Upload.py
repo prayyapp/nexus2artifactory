@@ -94,7 +94,9 @@ class Upload(object):
                 if os.path.isdir(ap):
                     def joinall(x): return os.path.join(f, x)
                     files.extend(map(joinall, os.listdir(ap)))
-                else: yield ap, mp, src["Repo Name (Artifactory)"]
+                else:
+                    self.log.info("Found artifact for deployment: %s", f)
+                    yield ap, mp, src["Repo Name (Artifactory)"]
 
     def filelistgenerator3(self, conf):
         repomap = self.scr.nexus.repomap
@@ -139,6 +141,7 @@ class Upload(object):
                         blob = os.path.splitext(meta)[0] + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
+                        self.log.info("Found artifact for deployment: %s", blob)
                         yield ap, mp, repos
 
     def runThread(self, queue, url, headers):
@@ -161,11 +164,11 @@ class Upload(object):
 
     def deploy(self, url, headers, props, localpath, repo, repopath, csdata):
         sha2, sha1, md5 = csdata
-        puturl = url + urllib.quote(repo + repopath)
+        puturl = url + urllib.quote((repo + repopath).encode('utf-8'))
         propurl = puturl
         for propn, prop in props.items():
-            propurl += ';' + urllib.quote(propn, '')
-            propurl += '=' + urllib.quote(prop, '')
+            propurl += ';' + urllib.quote(propn.encode('utf-8'), '')
+            propurl += '=' + urllib.quote(prop.encode('utf-8'), '')
         artifheaders = {'X-Checksum-Sha256': sha2}
         artifheaders['X-Checksum-Sha1'] = sha1
         artifheaders['X-Checksum-Md5'] = md5

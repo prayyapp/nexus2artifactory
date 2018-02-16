@@ -182,7 +182,7 @@ class Artifactory(object):
                 if jsn['rclass'] == 'virtual':
                     jsn['repositories'] = nrepo['repos']
                 mthd = 'POST' if jsn['key'] in repos else 'PUT'
-                cfg = 'api/repositories/' + urllib.quote(jsn['key'], '')
+                cfg = 'api/repositories/' + urllib.quote(jsn['key'].encode('utf-8'), '')
                 if mthd == 'PUT' and jsn['rclass'] == 'virtual':
                     try:
                         self.dorequest(conn, 'GET', cfg, None, False)
@@ -215,10 +215,10 @@ class Artifactory(object):
                 jsn['suppressPomConsistencyChecks'] = rep["Suppresses Pom Consistency Checks"]
                 if nrepo['type'] == 'yum' and (nrepo['class'] == 'local' or nrepo['class'] == 'virtual'):
                     self.log.info('Requesting yum metadata calculation')
-                    url = 'api/yum/' + urllib.quote(rep["Repo Name (Artifactory)"], '') + '?async=1'
+                    url = 'api/yum/' + urllib.quote(rep["Repo Name (Artifactory)"].encode('utf-8'), '') + '?async=1'
                     self.dorequest(conn, 'POST', url)
                     jsn['calculateYumMetadata'] = True
-                cfg = 'api/repositories/' + urllib.quote(rep["Repo Name (Artifactory)"], '')
+                cfg = 'api/repositories/' + urllib.quote(rep["Repo Name (Artifactory)"].encode('utf-8'), '')
                 self.dorequest(conn, 'POST', cfg, jsn)
             except:
                 self.log.exception("Error finalizing migration for repository %s:", repn)
@@ -263,7 +263,7 @@ class Artifactory(object):
                         except: pass
                         jsn['groups'].append(group)
                 mthd = 'POST' if jsn['name'] in usrs else 'PUT'
-                cfg = 'api/security/users/' + urllib.quote(jsn['name'], '')
+                cfg = 'api/security/users/' + urllib.quote(jsn['name'].encode('utf-8'), '')
                 self.dorequest(conn, mthd, cfg, jsn)
             except:
                 self.log.exception("Error migrating user %s:", usern)
@@ -293,7 +293,7 @@ class Artifactory(object):
                 jsn['description'] = grp["Group Description"]
                 jsn['autoJoin'] = grp["Auto Join Users"]
                 mthd = 'POST' if jsn['name'] in grps else 'PUT'
-                cfg = 'api/security/groups/' + urllib.quote(jsn['name'], '')
+                cfg = 'api/security/groups/' + urllib.quote(jsn['name'].encode('utf-8'), '')
                 self.dorequest(conn, mthd, cfg, jsn)
             except:
                 self.log.exception("Error migrating group %s:", grpn)
@@ -337,7 +337,7 @@ class Artifactory(object):
                 jsn['excludesPattern'] = excpat
                 jsn['repositories'] = [repo]
                 jsn['principals'] = {'users': {}, 'groups': grps}
-                cfg = 'api/security/permissions/' + urllib.quote(jsn['name'], '')
+                cfg = 'api/security/permissions/' + urllib.quote(jsn['name'].encode('utf-8'), '')
                 self.dorequest(conn, 'PUT', cfg, jsn)
             except:
                 self.log.exception("Error migrating permission %s:", permn)
