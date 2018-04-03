@@ -22,13 +22,12 @@ class Security2Test(unittest.TestCase):
     def test_getUsers(self):
         with open(os.path.join(self.resourcesDir, 'defaultRoleMap.txt'), 'r') as roleFile:
             roles = eval(roleFile.read())
-        # Admin + anon only
+        # Admin only
         xml = ET.parse(os.path.join(self.resourcesDir, 'basicUsers.xml'))
         users = self.security.getusers(xml, roles)
-        self.assertEqual(len(users), 2)
-        self.assertEqual(sorted(users), sorted(('admin', 'anonymous')))
+        self.assertEqual(len(users), 1)
+        self.assertEqual(sorted(users), ['admin'])
         self.assertEqual(users['admin']['email'], 'bar@yourcompany.com')
-        self.assertEqual(users['anonymous']['email'], 'foo@yourcompany.com')
 
     def test_getRoles(self):
         with open(os.path.join(self.resourcesDir, 'defaultPrivMap.txt'), 'r') as privFile:

@@ -41,7 +41,10 @@ class Nexus3(object):
         if None in (path, self.url, self.user, self.pasw): return True
         self.log.info("Reading repository config from Nexus.")
         try:
-            data = self.requestData()
+            data = self.requestData('service/rest/v1/script')
+            if isinstance(data, basestring):
+                self.log.info("Retrying with older Nexus API.")
+                data = self.requestData('service/siesta/rest/v1/script')
             if isinstance(data, basestring): return data
             path = os.path.abspath(path)
             repos, repomap, stores = [], {}, {}
@@ -131,10 +134,10 @@ class Nexus3(object):
             if storename in stores: repodata['storage'] = stores[storename]
         return repodata
 
-    def requestData(self):
+    def requestData(self, basepath):
         self.log.info("Attempting to communicate with Nexus server.")
         auth = "Basic " + base64.b64encode(self.user + ':' + self.pasw)
-        deppath = self.url[2] + 'service/siesta/rest/v1/script'
+        deppath = self.url[2] + basepath
         delpath = deppath + '/artifactorymigrator'
         runpath = delpath + '/run'
         depurl = urlparse.urlunsplit((self.url[0], self.url[1], deppath, '', ''))
