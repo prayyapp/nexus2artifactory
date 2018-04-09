@@ -59,9 +59,9 @@ class Artifactory(object):
             self.dorequest(conn, 'POST', cfg, artxml)
             self.prog.refresh()
             self.migraterepos(conn, conf)
-            self.migrategroups(conn, secconf)
-            self.migrateusers(conn, secconf)
-            self.migrateperms(conn, secconf)
+            self.migrategroups(conn, conf)
+            self.migrateusers(conn, conf)
+            self.migrateperms(conn, conf)
             self.log.info("Resetting password expiration.")
             artxml = self.dorequest(conn, 'GET', cfg)
             root = artxml.getroot()
@@ -148,9 +148,12 @@ class Artifactory(object):
         self.log.info("Migrating repository definitions.")
         cfg = 'api/repositories'
         result = self.dorequest(conn, 'GET', cfg)
-        nrepos = {}
-        for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
-        repos = {}
+        nrepos, arepos, repos = {}, {}, {}
+        for nrepo in self.scr.nexus.repos:
+            nrepos[nrepo['id']] = nrepo
+            r = conf["Repository Migration Setup"]
+            if nrepo['id'] in r:
+                arepos[nrepo['id']] = r[nrepo['id']]["Repo Name (Artifactory)"]
         for res in result: repos[res['key']] = True
         for repn in self.orderrepos(nrepos):
             if repn not in conf["Repository Migration Setup"]: continue
@@ -180,7 +183,11 @@ class Artifactory(object):
                 if jsn['rclass'] == 'remote':
                     jsn['url'] = rep["Remote URL"]
                 if jsn['rclass'] == 'virtual':
-                    jsn['repositories'] = nrepo['repos']
+                    rs = []
+                    for r in nrepo['repos']:
+                        if r in arepos: rs.append(arepos[r])
+                        else: rs.append(r)
+                    jsn['repositories'] = rs
                 mthd = 'POST' if jsn['key'] in repos else 'PUT'
                 cfg = 'api/repositories/' + urllib.quote(jsn['key'].encode('utf-8'), '')
                 if mthd == 'PUT' and jsn['rclass'] == 'virtual':
@@ -225,8 +232,9 @@ class Artifactory(object):
                 self.prog.stepsmap['Finalizing'][3] += 1
             finally: self.prog.stepsmap['Finalizing'][1] += 1
 
-    def migrateusers(self, conn, conf):
+    def migrateusers(self, conn, genconf):
         self.log.info("Migrating users.")
+        conf = genconf["Security Migration Setup"]
         passresets = []
         cfg = 'api/security/users'
         result = self.dorequest(conn, 'GET', cfg)
@@ -273,8 +281,9 @@ class Artifactory(object):
             cfg = 'api/security/users/authorization/expirePassword'
             self.dorequest(conn, 'POST', cfg, passresets)
 
-    def migrategroups(self, conn, conf):
+    def migrategroups(self, conn, genconf):
         self.log.info("Migrating groups.")
+        conf = genconf["Security Migration Setup"]
         cfg = 'api/security/groups'
         result = self.dorequest(conn, 'GET', cfg)
         grps = {}
@@ -300,11 +309,17 @@ class Artifactory(object):
                 self.prog.stepsmap['Groups'][3] += 1
             finally: self.prog.stepsmap['Groups'][1] += 1
 
-    def migrateperms(self, conn, conf):
+    def migrateperms(self, conn, genconf):
         self.log.info("Migrating permissions.")
+        conf = genconf["Security Migration Setup"]
         cfg = 'api/security/permissions'
         result = self.dorequest(conn, 'GET', cfg)
         grpdata = {}
+        arepos = {}
+        for repo in self.scr.nexus.repos:
+            r = genconf["Repository Migration Setup"]
+            if repo['id'] in r:
+                arepos[repo['id']] = r[repo['id']]["Repo Name (Artifactory)"]
         if 'Groups Migration Setup' not in conf:
             conf['Groups Migration Setup'] = {}
         for grpn, grp in conf['Groups Migration Setup'].items():
@@ -328,9 +343,10 @@ class Artifactory(object):
                 name = perm["Permission Name (Artifactory)"]
                 incpat = ','.join(perm["Include Patterns"])
                 excpat = ','.join(perm["Exclude Patterns"])
-                repo = privs[name]['repo']
+                repo = privs[permn]['repo']
                 if repo == '*': repo = 'ANY'
-                grps = grpdata[name] if name in grpdata else {}
+                elif repo in arepos: repo = arepos[repo]
+                grps = grpdata[permn] if permn in grpdata else {}
                 jsn = {}
                 jsn['name'] = name
                 jsn['includesPattern'] = incpat

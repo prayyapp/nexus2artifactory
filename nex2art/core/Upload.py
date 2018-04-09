@@ -110,7 +110,7 @@ class Upload(object):
                 if 'class' in repomap[name]:
                     if repomap[name]['class'] != 'local': continue
                 if 'storage' in repomap[name]:
-                    repos.append(src["Repo Name (Artifactory)"])
+                    repos.append((name, src["Repo Name (Artifactory)"]))
                     store = repomap[name]['storage']
                     if store['name'] not in stores:
                         stores[store['name']] = store
@@ -305,9 +305,13 @@ class Upload(object):
         if 'deleted' in conf and conf['deleted'] == 'true': return None
         if '@Bucket.repo-name' in conf:
             repo = conf['@Bucket.repo-name']
-            if repo not in repos: return None
+            for nexrepo, artrepo in repos:
+                if repo == nexrepo:
+                    repo = artrepo
+                    break
         if '@BlobStore.blob-name' in conf:
             store = '/' + conf['@BlobStore.blob-name']
+        if repo == None or store == None: return None
         return repo, store
 
     def acquireChecksums3(self, path, metapath):
