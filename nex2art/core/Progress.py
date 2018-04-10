@@ -6,6 +6,7 @@ class Progress(object):
         self.scr = scr
         self.current = None
         self.currentartifact = None
+        self.currentstep = 0
         if self.scr.interactive:
             self.title = "Running Migration ... "
             self.title = ' '*(self.scr.w - len(self.title)) + self.title
@@ -31,6 +32,12 @@ class Progress(object):
         self.render(result)
         return result
 
+    def nextstep(self):
+        self.current = None
+        self.currentartifact = None
+        self.currentstep += 1
+        self.refresh()
+
     def refresh(self):
         if not self.scr.interactive: return
         self.render()
@@ -39,12 +46,12 @@ class Progress(object):
     def logsession(self):
         log = []
         log.append("\nMigration Summary:\n\n")
-        for step in self.steps:
+        for stepn, step in enumerate(self.steps):
             name, done, total, errors, artifacts = step
             stat = None
             if errors > 0: stat = " ! "
-            elif done == True or done >= total: stat = " + "
-            elif done == False or done <= 0: stat = "   "
+            elif stepn < self.currentstep: stat = " + "
+            elif stepn > self.currentstep: stat = "   "
             else: stat = " ~ "
             log.append(stat)
             stats = []
@@ -66,7 +73,7 @@ class Progress(object):
         unicurses.waddstr(self.scr.win, self.title, self.scr.attr['ttl'])
         tdone, ttotal, terror, = 0, 0, 0
         mdone, mtotal, mname, mset = 0, 0, None, False
-        for step in self.steps:
+        for stepn, step in enumerate(self.steps):
             n, d, t, e, a = step
             if t == None:
                 t = 1
@@ -77,7 +84,7 @@ class Progress(object):
             if mdone >= mtotal and d > 0 and not mset:
                 mdone, mtotal, mname = d, t, n
             else: mset = True
-            self.renderStep(step)
+            self.renderStep(stepn, step)
         unicurses.waddstr(self.scr.win, "\n Total Progress:\n")
         self.renderProgress(tdone, ttotal)
         if result != None:
@@ -99,14 +106,12 @@ class Progress(object):
             unicurses.waddstr(self.scr.win, "\n")
         else: unicurses.waddstr(self.scr.win, "\n")
 
-    def renderStep(self, step):
+    def renderStep(self, stepn, step):
         name, done, total, errors, artifacts = step
         stat, color = None, None
         if errors > 0: stat, color = " ! ", 'err'
-        elif done == True or (not isinstance(done, bool) and done >= total):
-            stat, color = " + ", 'val'
-        elif done == False or (not isinstance(done, bool) and done <= 0):
-            stat, color = "   ", 'val'
+        elif stepn < self.currentstep: stat, color = " + ", 'val'
+        elif stepn > self.currentstep: stat, color = "   ", 'val'
         else: stat, color = " ~ ", 'slp'
         unicurses.waddstr(self.scr.win, stat, self.scr.attr[color])
         stats = []

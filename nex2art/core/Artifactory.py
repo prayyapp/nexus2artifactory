@@ -47,30 +47,41 @@ class Artifactory(object):
                 raise MigrationError(msg)
             self.log.info("Migrating to Artifactory.")
             self.prog = prog
-            secconf = conf["Security Migration Setup"]
-            self.initprogress(conf, secconf)
+            counts = self.countmigrationobjects(conf)
+            self.initprogress(counts)
             cfg = "api/system/configuration"
             conn = self.setupconn()
-            self.log.info("Enabling password expiration.")
-            artxml = self.dorequest(conn, 'GET', cfg)
-            root = artxml.getroot()
-            ns = root.tag[:root.tag.index('}') + 1]
-            pexpire = self.enablePasswordExpire(root, ns)
-            self.dorequest(conn, 'POST', cfg, artxml)
-            self.prog.refresh()
-            self.migraterepos(conn, conf)
-            self.migrategroups(conn, conf)
-            self.migrateusers(conn, conf)
-            self.migrateperms(conn, conf)
-            self.log.info("Resetting password expiration.")
-            artxml = self.dorequest(conn, 'GET', cfg)
-            root = artxml.getroot()
-            ns = root.tag[:root.tag.index('}') + 1]
-            self.migrateldap(conf, root, ns)
-            self.disablePasswordExpire(root, ns, pexpire)
-            self.dorequest(conn, 'POST', cfg, artxml)
+            if counts['password'] > 0:
+                self.log.info("Enabling password expiration.")
+                artxml = self.dorequest(conn, 'GET', cfg)
+                root = artxml.getroot()
+                ns = root.tag[:root.tag.index('}') + 1]
+                pexpire = self.enablePasswordExpire(root, ns)
+                self.dorequest(conn, 'POST', cfg, artxml)
+            self.prog.nextstep()
+            if counts['repo'] > 0: self.migraterepos(conn, conf)
+            self.prog.nextstep()
+            if counts['group'] > 0: self.migrategroups(conn, conf)
+            self.prog.nextstep()
+            if counts['user'] > 0: self.migrateusers(conn, conf)
+            self.prog.nextstep()
+            if counts['permission'] > 0: self.migrateperms(conn, conf)
+            self.prog.nextstep()
+            if counts['password'] > 0 or counts['ldap'] > 0:
+                artxml = self.dorequest(conn, 'GET', cfg)
+                root = artxml.getroot()
+                ns = root.tag[:root.tag.index('}') + 1]
+                if counts['password'] > 0:
+                    self.log.info("Resetting password expiration.")
+                    self.disablePasswordExpire(root, ns, pexpire)
+                if counts['ldap'] > 0: self.migrateldap(conf, root, ns)
+                self.dorequest(conn, 'POST', cfg, artxml)
+            self.prog.nextstep()
             self.upload.upload(conf)
-            self.migratereposfinalize(conn, conf)
+            self.prog.nextstep()
+            if counts['final'] > 0:
+                self.migratereposfinalize(conn, conf)
+            self.prog.nextstep()
             return True
         except MigrationError as ex:
             self.log.exception("Migration Error:")
@@ -93,8 +104,10 @@ class Artifactory(object):
         enabled = exp.find(ns + 'enabled')
         enabled.text = cfg
 
-    def initprogress(self, conf, secconf):
-        repoct, grpct, usrct, permct, ldapct, finalct = 0, 0, 0, 0, 0, 0
+    def countmigrationobjects(self, conf):
+        counts = {'repo': 0, 'final': 0, 'group': 0, 'user': 0, 'password': 0,
+                      'permission': 0, 'ldap': 0}
+        secconf = conf["Security Migration Setup"]
         if "Repository Migration Setup" in conf:
             nrepos = {}
             for nrepo in self.scr.nexus.repos: nrepos[nrepo['id']] = nrepo
@@ -102,35 +115,42 @@ class Artifactory(object):
                 if not isinstance(rep, dict): continue
                 if rep['available'] != True: continue
                 if rep["Migrate This Repo"] != True: continue
-                repoct += 1
-                if nrepos[repn]['class'] in ('local', 'remote'): finalct += 1
+                counts['repo'] += 1
+                if nrepos[repn]['class'] not in ('local', 'remote'): continue
+                counts['final'] += 1
         if "Groups Migration Setup" in secconf:
             for grpn, grp in secconf['Groups Migration Setup'].items():
                 if grp['available'] != True: continue
                 if grp["Migrate This Group"] != True: continue
-                grpct += 1
+                counts['group'] += 1
         if "Users Migration Setup" in secconf:
             for usern, user in secconf['Users Migration Setup'].items():
                 if not isinstance(user, dict): continue
                 if user['available'] != True: continue
                 if user["Migrate This User"] != True: continue
-                usrct += 1
+                counts['user'] += 1
+                if user["Is An Administrator"] == True: continue
+                if user["Password"] != None: continue
+                counts['password'] += 1
         if "Permissions Migration Setup" in secconf:
             for permn, perm in secconf['Permissions Migration Setup'].items():
                 if perm['available'] != True: continue
                 if perm["Migrate This Permission"] != True: continue
-                permct += 1
+                counts['permission'] += 1
         if "LDAP Migration Setup" in secconf:
             for ldapn, ldap in secconf['LDAP Migration Setup'].items():
                 if ldap['available'] != True: continue
                 if ldap["Migrate This LDAP Config"] != True: continue
-                ldapct += 1
-        self.prog.stepsmap['Repositories'][2] = repoct
-        self.prog.stepsmap['Finalizing'][2] = finalct
-        self.prog.stepsmap['Groups'][2] = grpct
-        self.prog.stepsmap['Users'][2] = usrct
-        self.prog.stepsmap['Permissions'][2] = permct
-        self.prog.stepsmap['LDAP Configs'][2] = ldapct
+                counts['ldap'] += 1
+        return counts
+
+    def initprogress(self, counts):
+        self.prog.stepsmap['Repositories'][2] = counts['repo']
+        self.prog.stepsmap['Finalizing'][2] = counts['final']
+        self.prog.stepsmap['Groups'][2] = counts['group']
+        self.prog.stepsmap['Users'][2] = counts['user']
+        self.prog.stepsmap['Permissions'][2] = counts['permission']
+        self.prog.stepsmap['LDAP Configs'][2] = counts['ldap']
         self.prog.refresh()
 
     def orderrepos(self, repos):
