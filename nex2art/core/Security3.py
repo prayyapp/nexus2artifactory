@@ -121,7 +121,8 @@ class Security3(object):
         userdata['realm'] = user['source'].lower()
         if userdata['realm'] == 'default': userdata['realm'] = 'internal'
         roles = []
-        for role in user['roles']: roles.append(groups[role['id']])
+        for role in user['roles']:
+            if role['id'] in groups: roles.append(groups[role['id']])
         userdata['roles'] = roles
         userdata['builtin'] = user['readonly']
         return userdata
