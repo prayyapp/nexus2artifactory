@@ -12,6 +12,7 @@ from .Security3 import Security3
 from .Ldap3 import Ldap3
 from .Nexus3 import Nexus3
 from .Nexus import Nexus
+from .Maven import Maven
 from .Docker import Docker
 from .Gitlfs import Gitlfs
 from .Npm import Npm

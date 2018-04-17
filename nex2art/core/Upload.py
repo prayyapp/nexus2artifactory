@@ -9,7 +9,7 @@ import urllib
 import urllib2
 import hashlib
 import threading
-from . import Docker, Gitlfs, Npm, Gems
+from . import Maven, Docker, Gitlfs, Npm, Gems
 
 class PutRequest(urllib2.Request):
     def __init__(self, *args, **kwargs):
@@ -18,11 +18,29 @@ class PutRequest(urllib2.Request):
     def get_method(self, *args, **kwargs):
         return 'PUT'
 
+class Flush(object):
+    def __init__(self):
+        self.lock1 = threading.Lock()
+        self.lock2 = threading.Lock()
+        self.lock1.acquire()
+        self.lock2.acquire()
+
+    def parentWait(self):
+        self.lock1.acquire()
+
+    def parentSignal(self):
+        self.lock2.release()
+
+    def threadWait(self):
+        self.lock1.release()
+        self.lock2.acquire()
+
 class Upload(object):
     def __init__(self, scr, parent):
         self.log = logging.getLogger(__name__)
         self.scr = scr
         self.parent = parent
+        self.maven = Maven()
         self.docker = Docker()
         self.gitlfs = Gitlfs()
         self.npm = Npm()
@@ -48,6 +66,14 @@ class Upload(object):
             for f in self.filelistgenerator3(conf): queue.put(f)
         else:
             for f in self.filelistgenerator2(conf): queue.put(f)
+        flush = []
+        for _ in threads:
+            lock = Flush()
+            queue.put(lock)
+            flush.append(lock)
+        for f in flush: f.parentWait()
+        for f in flush: f.parentSignal()
+        for f in self.cleanuplistgenerator(): queue.put(f)
         for _ in threads: queue.put(None)
         for t in threads: t.join()
         self.log.info("All artifacts successfully uploaded.")
@@ -148,6 +174,17 @@ class Upload(object):
         while True:
             item = queue.get()
             if item == None: break
+            if isinstance(item, Flush):
+                item.threadWait()
+                continue
+            if len(item) == 5:
+                lpath, mpath, rep, rpath, props = item
+                if self.scr.nexus.nexusversion == 3:
+                    csdata = self.acquireChecksums3(lpath, mpath)
+                    if csdata == None: continue
+                else: csdata = self.acquireChecksums2(lpath, mpath)
+                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                continue
             path, metapath, repo = item
             if self.scr.nexus.nexusversion == 3:
                 locdata = self.acquireLocation3(path, metapath, repo)
@@ -203,7 +240,9 @@ class Upload(object):
         repomap = self.scr.nexus.repomap
         if repo not in repomap:
             return [(localpath, metapath, repo, repopath, {})]
-        if repomap[repo]['type'] == 'docker':
+        if repomap[repo]['type'] == 'maven':
+            return self.maven.deployPaths(localpath, metapath, repo, repopath)
+        elif repomap[repo]['type'] == 'docker':
             return self.docker.deployPaths(localpath, metapath, repo, repopath)
         elif repomap[repo]['type'] == 'gitlfs':
             return self.gitlfs.deployPaths(localpath, metapath, repo, repopath)
@@ -212,6 +251,9 @@ class Upload(object):
         elif repomap[repo]['type'] == 'gems' and self.scr.nexus.nexusversion == 2:
             return self.gems.deployPaths(localpath, metapath, repo, repopath)
         return [(localpath, metapath, repo, repopath, {})]
+
+    def cleanuplistgenerator(self):
+        for x in self.maven.cleanup(): yield x
 
     def deployChecksum(self, url, headers):
         chksumheaders = {'X-Checksum-Deploy': 'true'}
