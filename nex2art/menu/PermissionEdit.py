@@ -32,15 +32,12 @@ class PermissionEdit(Menu):
         return itemlist.mkopt(None, '', idact, val=item)
 
     def resetpatterns(self, _=None):
-        noDefault = False
         priv = self.scr.nexus.security.privs[self.path[-1]]
         incp, excp = priv['defincpat'], priv['defexcpat']
         includepat = self.scr.state[self.path]["Include Patterns"]
         excludepat = self.scr.state[self.path]["Exclude Patterns"]
-        if incp == False: noDefault, incp = True, []
-        if excp == False: noDefault, excp = True, []
+        if incp == False or excp == False: incp, excp = [], []
         includepat.data, excludepat.data = incp, excp
-        if noDefault: includepat.valid = "Unable to generate default patterns."
 
     def fixname(self, newname):
         if newname['val'] != None:

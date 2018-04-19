@@ -3,10 +3,12 @@ import re
 import logging
 import xml.etree.ElementTree as ET
 from . import getBuiltinTargs, getBuiltinPrivs, getBuiltinPrivmap, getBuiltinRoles
+from . import Pattern
 
 class Security2(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
+        self.maxpatterns = 10
         self.initialize()
 
     def initialize(self):
@@ -53,6 +55,7 @@ class Security2(object):
         targets = {}
         targsxml = xml.find('repositoryTargets')
         if targsxml == None: return {}
+        parser = Pattern(self.maxpatterns)
         for targetxml in targsxml.findall('repositoryTarget'):
             target = {'patterns': [], 'defincpat': [], 'defexcpat': []}
             target['name'] = targetxml.find('id').text
@@ -63,16 +66,17 @@ class Security2(object):
             for patxml in xmlpatterns:
                 pattern = patxml.text
                 target['patterns'].append(pattern)
-                if pattern == ".*":
-                    target['defincpat'].append("**")
-                elif pattern == ".*maven-metadata\\.xml.*":
-                    target['defincpat'].append("**/*maven-metadata.xml*")
-                elif pattern == "(?!.*-sources.*).*":
-                    target['defexcpat'].append("**/*-sources.*/**")
-                else:
-                    target['defincpat'] = False
-                    target['defexcpat'] = False
-                    break
+            try:
+                pospats, negpats = parser.convert(target['patterns'])
+                target['defincpat'] = pospats
+                target['defexcpat'] = negpats
+            except Exception as ex:
+                msg = "Unable to convert regexes for repository target %s, %s"
+                if self.log.getEffectiveLevel() == logging.DEBUG:
+                    self.log.exception(msg + ":", target["name"], str(ex))
+                else: self.log.warn(msg, target['name'], str(ex))
+                target['defincpat'] = str(ex)
+                target['defexcpat'] = False
             targets[target['name']] = target
         return targets
 

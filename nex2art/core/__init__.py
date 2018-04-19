@@ -5,6 +5,7 @@ from .DataTree import DataTree
 from .Validate import Validate
 from .Option import Option
 from .Setup import Setup
+from .Pattern import Pattern
 from .Security2 import Security2
 from .Ldap2 import Ldap2
 from .Nexus2 import Nexus2

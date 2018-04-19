@@ -237,8 +237,7 @@ class Format(object):
 
     def updateperm(self, perm, menu):
         inc, exc = perm['defincpat'], perm['defexcpat']
-        if inc == False: inc = []
-        if exc == False: exc = []
+        if inc == False or exc == False: inc, exc = [], []
         menu = menu[perm['name']]
         menu["available"].data = True
         menu["Permission Name (Nexus)"].data = perm['name']

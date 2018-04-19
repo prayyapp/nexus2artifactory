@@ -221,6 +221,16 @@ class Validate(object):
     @validates("Permissions Migration Setup/.")
     def validatePermission(self, path, state):
         if state.save == False or state.isleaf(): return None
+        if path[-1] != None:
+            priv = self.scr.nexus.security.privs[path[-1]]
+            incp, excp = priv['defincpat'], priv['defexcpat']
+            includepat = state["Include Patterns"]
+            excludepat = state["Exclude Patterns"]
+            resetpat = state["Reset Patterns"]
+            if len(includepat.values()) + len(excludepat.values()) <= 0:
+                msg = "Unable to generate default patterns"
+                if incp == False: resetpat.valid = msg + '.'
+                else: resetpat.valid = msg + ': ' + incp
         if state["Migrate This Permission"].data: return None
         return True
 
