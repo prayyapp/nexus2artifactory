@@ -62,6 +62,7 @@ class Upload(object):
             threads.append(t)
             t.start()
         self.log.info("Threads created successfully.")
+        self.reponames = {}
         if self.scr.nexus.nexusversion == 3:
             for f in self.filelistgenerator3(conf): queue.put(f)
         else:
@@ -92,6 +93,7 @@ class Upload(object):
         storage = os.path.join(self.scr.nexus.path, 'storage')
         for name, src in conf["Repository Migration Setup"].items():
             if not isinstance(src, dict): continue
+            self.reponames[src["Repo Name (Artifactory)"]] = name
             if src['available'] != True: continue
             if src["Migrate This Repo"] != True: continue
             if repomap and name in repomap and 'class' in repomap[name]:
@@ -130,6 +132,7 @@ class Upload(object):
         repos, stores = [], {}
         for name, src in conf["Repository Migration Setup"].items():
             if not isinstance(src, dict): continue
+            self.reponames[src["Repo Name (Artifactory)"]] = name
             if src['available'] != True: continue
             if src["Migrate This Repo"] != True: continue
             if repomap and name in repomap:
@@ -238,17 +241,18 @@ class Upload(object):
 
     def deployPaths(self, localpath, metapath, repo, repopath):
         repomap = self.scr.nexus.repomap
-        if repo not in repomap:
+        if repo not in self.reponames or self.reponames[repo] not in repomap:
             return [(localpath, metapath, repo, repopath, {})]
-        if repomap[repo]['type'] == 'maven':
+        typ = repomap[self.reponames[repo]]['type']
+        if typ == 'maven':
             return self.maven.deployPaths(localpath, metapath, repo, repopath)
-        elif repomap[repo]['type'] == 'docker':
+        elif typ == 'docker':
             return self.docker.deployPaths(localpath, metapath, repo, repopath)
-        elif repomap[repo]['type'] == 'gitlfs':
+        elif typ == 'gitlfs':
             return self.gitlfs.deployPaths(localpath, metapath, repo, repopath)
-        elif repomap[repo]['type'] == 'npm' and self.scr.nexus.nexusversion == 3:
+        elif typ == 'npm' and self.scr.nexus.nexusversion == 3:
             return self.npm.deployPaths(localpath, metapath, repo, repopath)
-        elif repomap[repo]['type'] == 'gems' and self.scr.nexus.nexusversion == 2:
+        elif typ == 'gems' and self.scr.nexus.nexusversion == 2:
             return self.gems.deployPaths(localpath, metapath, repo, repopath)
         return [(localpath, metapath, repo, repopath, {})]
 
@@ -346,9 +350,9 @@ class Upload(object):
         repo, store, conf = None, None, self.acquireMetadata3(metapath)
         if 'deleted' in conf and conf['deleted'] == 'true': return None
         if '@Bucket.repo-name' in conf:
-            repo = conf['@Bucket.repo-name']
+            bucketrepo = conf['@Bucket.repo-name']
             for nexrepo, artrepo in repos:
-                if repo == nexrepo:
+                if bucketrepo == nexrepo:
                     repo = artrepo
                     break
         if '@BlobStore.blob-name' in conf:
