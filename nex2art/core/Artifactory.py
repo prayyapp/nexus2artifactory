@@ -68,14 +68,19 @@ class Artifactory(object):
             if counts['permission'] > 0: self.migrateperms(conn, conf)
             self.prog.nextstep()
             if counts['password'] > 0 or counts['ldap'] > 0:
-                artxml = self.dorequest(conn, 'GET', cfg)
-                root = artxml.getroot()
-                ns = root.tag[:root.tag.index('}') + 1]
-                if counts['password'] > 0:
-                    self.log.info("Resetting password expiration.")
-                    self.disablePasswordExpire(root, ns, pexpire)
-                if counts['ldap'] > 0: self.migrateldap(conf, root, ns)
-                self.dorequest(conn, 'POST', cfg, artxml)
+                try:
+                    artxml = self.dorequest(conn, 'GET', cfg)
+                    root = artxml.getroot()
+                    ns = root.tag[:root.tag.index('}') + 1]
+                    if counts['password'] > 0:
+                        self.log.info("Resetting password expiration.")
+                        self.disablePasswordExpire(root, ns, pexpire)
+                    if counts['ldap'] > 0: self.migrateldap(conf, root, ns)
+                    self.dorequest(conn, 'POST', cfg, artxml)
+                except:
+                    msg = "Error resetting password expiration or migrating LDAP."
+                    self.log.exception(msg)
+                    self.prog.stepsmap['LDAP Configs'][3] += 1
             self.prog.nextstep()
             self.upload.upload(conf)
             self.prog.nextstep()
@@ -167,7 +172,14 @@ class Artifactory(object):
     def migraterepos(self, conn, conf):
         self.log.info("Migrating repository definitions.")
         cfg = 'api/repositories'
-        result = self.dorequest(conn, 'GET', cfg)
+        try:
+            result = self.dorequest(conn, 'GET', cfg)
+        except:
+            self.log.exception("Error retrieving list of existing repos.")
+            total = self.prog.stepsmap['Repositories'][2]
+            self.prog.stepsmap['Repositories'][1] = total
+            self.prog.stepsmap['Repositories'][3] = total
+            return
         nrepos, arepos, repos = {}, {}, {}
         for nrepo in self.scr.nexus.repos:
             nrepos[nrepo['id']] = nrepo
@@ -257,7 +269,14 @@ class Artifactory(object):
         conf = genconf["Security Migration Setup"]
         passresets = []
         cfg = 'api/security/users'
-        result = self.dorequest(conn, 'GET', cfg)
+        try:
+            result = self.dorequest(conn, 'GET', cfg)
+        except:
+            self.log.exception("Error retrieving list of existing users.")
+            total = self.prog.stepsmap['Users'][2]
+            self.prog.stepsmap['Users'][1] = total
+            self.prog.stepsmap['Users'][3] = total
+            return
         usrs = {}
         for res in result: usrs[res['name']] = True
         if 'Users Migration Setup' not in conf: return
@@ -298,14 +317,26 @@ class Artifactory(object):
                 self.prog.stepsmap['Users'][3] += 1
             finally: self.prog.stepsmap['Users'][1] += 1
         if len(passresets) > 0:
-            cfg = 'api/security/users/authorization/expirePassword'
-            self.dorequest(conn, 'POST', cfg, passresets)
+            try:
+                cfg = 'api/security/users/authorization/expirePassword'
+                self.dorequest(conn, 'POST', cfg, passresets)
+            except:
+                self.log.exception("Error expiring user passwords.")
+                total = self.prog.stepsmap['Users'][2]
+                self.prog.stepsmap['Users'][3] = total
 
     def migrategroups(self, conn, genconf):
         self.log.info("Migrating groups.")
         conf = genconf["Security Migration Setup"]
         cfg = 'api/security/groups'
-        result = self.dorequest(conn, 'GET', cfg)
+        try:
+            result = self.dorequest(conn, 'GET', cfg)
+        except:
+            self.log.exception("Error retrieving list of existing groups.")
+            total = self.prog.stepsmap['Groups'][2]
+            self.prog.stepsmap['Groups'][1] = total
+            self.prog.stepsmap['Groups'][3] = total
+            return
         grps = {}
         for res in result: grps[res['name']] = True
         if 'Groups Migration Setup' not in conf: return
@@ -333,7 +364,14 @@ class Artifactory(object):
         self.log.info("Migrating permissions.")
         conf = genconf["Security Migration Setup"]
         cfg = 'api/security/permissions'
-        result = self.dorequest(conn, 'GET', cfg)
+        try:
+            result = self.dorequest(conn, 'GET', cfg)
+        except:
+            self.log.exception("Error retrieving list of existing permissions.")
+            total = self.prog.stepsmap['Permissions'][2]
+            self.prog.stepsmap['Permissions'][1] = total
+            self.prog.stepsmap['Permissions'][3] = total
+            return
         grpdata = {}
         arepos = {}
         for repo in self.scr.nexus.repos:

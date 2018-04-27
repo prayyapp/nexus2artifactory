@@ -61,13 +61,10 @@ class Main(Menu):
             self.log.warning("Unable to run migration, errors found.")
             self.scr.msg = ('err', "Cannot run migration, errors found.")
             return
-        status = Progress(self.scr).show(self.scr.state.todict())
-        if status == True:
-            self.log.info("Migration successfully run.")
-            self.scr.msg = ('val', "Migration successful!")
-        else:
-            self.log.warning("Error running migration: %s.", status)
-            self.scr.msg = ('err', "Migration error: " + status)
+        status, msg = Progress(self.scr).show(self.scr.state.todict())
+        if status == 'val': self.log.info("Migration successfully run.")
+        else: self.log.warning("Error running migration: %s.", msg)
+        self.scr.msg = status, msg
 
     # Serialize the current configuration state as a JSON object, and save it to
     # a file. The parameter 'sel' is the menu option that ran this function.

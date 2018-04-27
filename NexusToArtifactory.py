@@ -39,7 +39,7 @@ def initInteractive(setup):
 
 def initNonInteractive(setup):
     logging.info("Initializing Nexus migration tool.")
-    status, prog = None, None
+    status, msg, prog = None, None, None
     try:
         scr = Screen(None, setup.args)
         prog = Progress(scr)
@@ -50,17 +50,17 @@ def initNonInteractive(setup):
         if scr.state.valid != True:
             logging.warning("Unable to run migration, errors found.")
             sys.exit(1)
-        status = prog.show(scr.state.todict())
-        if status == True: logging.info("Migration successfully run.")
+        status, msg = prog.show(scr.state.todict())
+        if status == 'val': logging.info("Migration successfully run.")
         else:
-            logging.warning("Error running migration: %s.", status)
+            logging.warning("Error running migration: %s.", msg)
             sys.exit(1)
     except BaseException as ex:
         if not isinstance(ex, SystemExit):
             logging.exception("Error running Nexus migration tool:")
         raise
     finally:
-        if status != None and prog != None: prog.logsession()
+        if status != None and prog != None: prog.logsession(msg)
         logging.info("Terminating Nexus migration tool.")
         logging.shutdown()
 

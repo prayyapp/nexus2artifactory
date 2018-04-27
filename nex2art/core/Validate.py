@@ -261,14 +261,24 @@ class Validate(object):
     @validates("LDAP Setting Name")
     def validateLDAPSettingName(self, path, state):
         newsetting = state.data
-        if newsetting != None: return True
-        return "Setting name must not be blank."
+        if newsetting == None: return "Setting name must not be blank."
+        if ':' in newsetting: return "Setting name must not contain ':'"
+        try:
+            if newsetting != ET.fromstring('<' + newsetting + ' />').tag:
+                return "Setting name must be a valid xml tag."
+        except: return "Setting name must be a valid xml tag."
+        return True
 
     @validates("LDAP Group Name")
     def validateLDAPGroupName(self, path, state):
         newgroup = state.data
-        if newgroup != None: return True
-        return "Group name must not be blank."
+        if newgroup == None: return "Group name must not be blank."
+        if ':' in newgroup: return "Group name must not contain ':'"
+        try:
+            if newgroup != ET.fromstring('<' + newgroup + ' />').tag:
+                return "Group name must be a valid xml tag."
+        except: return "Group name must be a valid xml tag."
+        return True
 
     @validates("Initial Setup")
     def validateConnections(self, path, state):

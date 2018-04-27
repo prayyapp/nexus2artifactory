@@ -24,12 +24,19 @@ class Progress(object):
 
     def show(self, conf):
         self.started = time.time()
-        if not self.scr.interactive:
-            return self.scr.artifactory.migrate(self, conf)
-        self.render()
-        unicurses.wrefresh(self.scr.win)
+        if self.scr.interactive:
+            self.render()
+            unicurses.wrefresh(self.scr.win)
         result = self.scr.artifactory.migrate(self, conf)
-        self.render(result)
+        if result == True:
+            for step in self.steps:
+                if step[3] > 0:
+                    result = 'key', "Migration successful, but errors occurred."
+                    break
+            else: result = 'val', "Migration successful!"
+        else: result = 'err', "Migration error: " + result
+        if self.scr.interactive:
+            self.render(result)
         return result
 
     def nextstep(self):
@@ -43,7 +50,7 @@ class Progress(object):
         self.render()
         unicurses.wrefresh(self.scr.win)
 
-    def logsession(self):
+    def logsession(self, msg):
         log = []
         log.append("\nMigration Summary:\n\n")
         for stepn, step in enumerate(self.steps):
@@ -64,8 +71,7 @@ class Progress(object):
             if errors > 0: log.append(str(errors) + " Errors")
             log.append("\n")
         timerep = self.drawTime(int(round(time.time() - self.started)))
-        log.append("\n Migration Successful!")
-        log.append("\n Completed in " + timerep + "\n")
+        log.append("\n " + msg + "\n Completed in " + timerep + "\n")
         self.scr.log.info(''.join(log))
 
     def render(self, result=None):
@@ -88,9 +94,10 @@ class Progress(object):
         unicurses.waddstr(self.scr.win, "\n Total Progress:\n")
         self.renderProgress(tdone, ttotal)
         if result != None:
+            status, msg = result
             timerep = self.drawTime(int(round(time.time() - self.started)))
-            msg = "\n Migration Successful!"
-            unicurses.waddstr(self.scr.win, msg, self.scr.attr['val'])
+            msg = "\n " + msg
+            unicurses.waddstr(self.scr.win, msg, self.scr.attr[status])
             msg = "\n Completed in " + timerep
             msg += "\n\n Press 'q' to continue.\n\n"
             unicurses.waddstr(self.scr.win, msg)
