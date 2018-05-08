@@ -59,6 +59,7 @@ class Security2(object):
         for targetxml in targsxml.findall('repositoryTarget'):
             target = {'patterns': [], 'defincpat': [], 'defexcpat': []}
             target['name'] = targetxml.find('id').text
+            self.log.debug("Extracting repository target %s", target['name'])
             target['ptype'] = targetxml.find('contentClass').text
             xmlpatterns = targetxml.find('patterns')
             if xmlpatterns == None: xmlpatterns = []
@@ -82,6 +83,7 @@ class Security2(object):
 
     def flattentargets(self, privs):
         for priv in privs.values():
+            self.log.debug("Flattening repository target into privilege %s", priv['name'])
             targ = priv['target']
             priv['ptype'] = targ['ptype']
             priv['patterns'] = targ['patterns']
@@ -97,6 +99,7 @@ class Security2(object):
             user = {'builtin': False}
             user['username'] = userxml.find('id').text
             if user['username'] == 'anonymous': continue
+            self.log.debug("Extracting user %s", user['username'])
             user['email'] = userxml.find('email').text
             user['enabled'] = userxml.find('status').text == 'active'
             users[user['username']] = user
@@ -106,6 +109,7 @@ class Security2(object):
             user = {'email': None, 'enabled': True, 'builtin': False}
             user['username'] = mapxml.find('userId').text
             if user['username'] == 'anonymous': continue
+            self.log.debug("Extracting role mapping for user %s", user['username'])
             if user['username'] in users: user = users[user['username']]
             user['realm'] = mapxml.find('source').text.lower()
             if user['realm'] == 'default': user['realm'] = 'internal'
@@ -178,6 +182,7 @@ class Security2(object):
         for rolexml in xmlroles.findall('role'):
             role = {'privileges': [], 'roles': [], 'admin': False, 'builtin': False}
             role['groupName'] = rolexml.find('id').text
+            self.log.debug("Extracting role %s", role['groupName'])
             if rolexml.find('description') != None:
                 role['description'] = rolexml.find('description').text
             else: role['description'] = ''
@@ -205,6 +210,7 @@ class Security2(object):
             for propxml in xmlproperties:
                 privtmp[propxml.find('key').text] = propxml.find('value').text
             name, method = privxml.find('name').text, privtmp['method']
+            self.log.debug("Extracting privilege %s", name)
             mthdstrs = method.split(',')
             if len(mthdstrs) == 2 and mthdstrs[1] == 'read':
                 method = mthdstrs[0]
