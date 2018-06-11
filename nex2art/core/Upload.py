@@ -199,11 +199,15 @@ class Upload(object):
             else: store = self.acquireLocation2(path, metapath)
             paths = self.deployPaths(path, metapath, repo, store)
             for lpath, mpath, rep, rpath, props in paths:
+                localheaders = headers
                 if self.scr.nexus.nexusversion == 3:
+                    props = self.acquireMetadata3(metapath)
+                    localheaders['X-Artifactory-Last-Modified'] = props['creationTime']
+                    localheaders['X-Artifactory-Created'] = props['creationTime']
                     csdata = self.acquireChecksums3(lpath, mpath)
                     if csdata == None: continue
                 else: csdata = self.acquireChecksums2(lpath, mpath)
-                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                self.deploy(url, localheaders, props, lpath, rep, rpath, csdata)
 
     def deploy(self, url, headers, props, localpath, repo, repopath, csdata):
         sha2, sha1, md5 = csdata
