@@ -169,6 +169,7 @@ class Upload(object):
                         if not os.path.isfile(mp): continue
                         blobbase = os.path.splitext(meta)[0]
                         if self.isNexus3ChecksumFile(chapdir, blobbase): continue
+                        if self.isNexus3NpmFolder(chapdir, blobbase): continue
                         blob = blobbase + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
@@ -405,3 +406,8 @@ class Upload(object):
         blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
         blobproperties = open(blobpropertiesfile, 'r').read()
         return ('.md5' in blobproperties) or ('.sha1' in blobproperties) or ('.sha256' in blobproperties)
+
+    def isNexus3NpmFolder(self, chapdir, fname):
+        blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
+        blobproperties = open(blobpropertiesfile, 'r').read()
+        return (re.search('blob-name=@', blobproperties)) and (not re.search('blob-name=@.+\..*', blobproperties))
