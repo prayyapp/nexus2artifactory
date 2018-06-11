@@ -167,7 +167,9 @@ class Upload(object):
                         if not meta.endswith('.properties'): continue
                         mp = os.path.join(chapdir, meta)
                         if not os.path.isfile(mp): continue
-                        blob = os.path.splitext(meta)[0] + '.bytes'
+                        blobbase = os.path.splitext(meta)[0]
+                        if self.isNexus3ChecksumFile(chapdir, blobbase): continue
+                        blob = blobbase + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
                         self.log.info("Found artifact for deployment: %s", blob)
@@ -398,3 +400,8 @@ class Upload(object):
             self.parent.prog.stepsmap['Artifacts'][4] += 1
             if error: self.parent.prog.stepsmap['Artifacts'][3] += 1
             self.parent.prog.refresh()
+
+    def isNexus3ChecksumFile(self, chapdir, fname):
+        blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
+        blobproperties = open(blobpropertiesfile, 'r').read()
+        return ('.md5' in blobproperties) or ('.sha1' in blobproperties) or ('.sha256' in blobproperties)
