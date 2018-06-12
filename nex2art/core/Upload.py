@@ -167,7 +167,9 @@ class Upload(object):
                         if not meta.endswith('.properties'): continue
                         mp = os.path.join(chapdir, meta)
                         if not os.path.isfile(mp): continue
-                        blob = os.path.splitext(meta)[0] + '.bytes'
+                        blobbase = os.path.splitext(meta)[0]
+                        if self.isNexus3ChecksumFile(chapdir, blobbase): continue
+                        blob = blobbase + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
                         self.log.info("Found artifact for deployment: %s", blob)
@@ -196,11 +198,15 @@ class Upload(object):
             else: store = self.acquireLocation2(path, metapath)
             paths = self.deployPaths(path, metapath, repo, store)
             for lpath, mpath, rep, rpath, props in paths:
+                localheaders = headers.copy()
                 if self.scr.nexus.nexusversion == 3:
+                    props = self.acquireMetadata3(metapath)
+                    localheaders['X-Artifactory-Last-Modified'] = props['creationTime']
+                    localheaders['X-Artifactory-Created'] = props['creationTime']
                     csdata = self.acquireChecksums3(lpath, mpath)
                     if csdata == None: continue
                 else: csdata = self.acquireChecksums2(lpath, mpath)
-                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                self.deploy(url, localheaders, props, lpath, rep, rpath, csdata)
 
     def deploy(self, url, headers, props, localpath, repo, repopath, csdata):
         sha2, sha1, md5 = csdata
@@ -398,3 +404,8 @@ class Upload(object):
             self.parent.prog.stepsmap['Artifacts'][4] += 1
             if error: self.parent.prog.stepsmap['Artifacts'][3] += 1
             self.parent.prog.refresh()
+
+    def isNexus3ChecksumFile(self, chapdir, fname):
+        blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
+        blobname = self.acquireMetadata3(blobpropertiesfile)['@BlobStore.blob-name']
+        return blobname.endswith('.md5') or blobname.endswith('.sha1') or blobname.endswith('.sha256')
