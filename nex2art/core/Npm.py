@@ -18,7 +18,7 @@ class Npm(object):
     def checkContent(self, path, name):
         try:
             with open(path, 'r') as m: js = json.load(m)
-            return js['name'] == name
+            return js['name'].endswith(name)
         except: return False
 
     def deployPaths(self, localpath, metapath, repo, repopath):

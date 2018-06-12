@@ -169,7 +169,6 @@ class Upload(object):
                         if not os.path.isfile(mp): continue
                         blobbase = os.path.splitext(meta)[0]
                         if self.isNexus3ChecksumFile(chapdir, blobbase): continue
-                        if self.isNexus3NpmFolder(chapdir, blobbase): continue
                         blob = blobbase + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
@@ -199,7 +198,7 @@ class Upload(object):
             else: store = self.acquireLocation2(path, metapath)
             paths = self.deployPaths(path, metapath, repo, store)
             for lpath, mpath, rep, rpath, props in paths:
-                localheaders = headers
+                localheaders = headers.copy()
                 if self.scr.nexus.nexusversion == 3:
                     props = self.acquireMetadata3(metapath)
                     localheaders['X-Artifactory-Last-Modified'] = props['creationTime']
@@ -408,10 +407,5 @@ class Upload(object):
 
     def isNexus3ChecksumFile(self, chapdir, fname):
         blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
-        blobproperties = open(blobpropertiesfile, 'r').read()
-        return ('.md5' in blobproperties) or ('.sha1' in blobproperties) or ('.sha256' in blobproperties)
-
-    def isNexus3NpmFolder(self, chapdir, fname):
-        blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
-        blobproperties = open(blobpropertiesfile, 'r').read()
-        return (re.search('blob-name=@', blobproperties)) and (not re.search('blob-name=@.+\..*', blobproperties))
+        blobname = self.acquireMetadata3(blobpropertiesfile)['@BlobStore.blob-name']
+        return blobname.endswith('.md5') or blobname.endswith('.sha1') or blobname.endswith('.sha256')
