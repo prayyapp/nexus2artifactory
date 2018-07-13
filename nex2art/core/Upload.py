@@ -198,18 +198,14 @@ class Upload(object):
             else: store = self.acquireLocation2(path, metapath)
             paths = self.deployPaths(path, metapath, repo, store)
             for lpath, mpath, rep, rpath, props in paths:
-                localheaders = headers.copy()
                 if self.scr.nexus.nexusversion == 3:
-                    props = self.acquireMetadata3(metapath)
-                    localheaders['X-Artifactory-Last-Modified'] = props['creationTime']
-                    localheaders['X-Artifactory-Created'] = props['creationTime']
                     csdata = self.acquireChecksums3(lpath, mpath)
                     if csdata == None: continue
                 else: csdata = self.acquireChecksums2(lpath, mpath)
-                self.deploy(url, localheaders, props, lpath, rep, rpath, csdata)
+                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
 
     def deploy(self, url, headers, props, localpath, repo, repopath, csdata):
-        sha2, sha1, md5 = csdata
+        sha2, sha1, md5, created, modified = csdata
         puturl = url + urllib.quote((repo + repopath).encode('utf-8'))
         propurl = puturl
         for propn, prop in props.items():
@@ -218,6 +214,8 @@ class Upload(object):
         artifheaders = {'X-Checksum-Sha256': sha2}
         artifheaders['X-Checksum-Sha1'] = sha1
         artifheaders['X-Checksum-Md5'] = md5
+        artifheaders['X-Artifactory-Created'] = created
+        artifheaders['X-Artifactory-Last-Modified'] = modified
         artifheaders.update(headers)
         attempt = 0
         while attempt < self.max_attempts:
@@ -331,12 +329,14 @@ class Upload(object):
         return store
 
     def acquireChecksums2(self, path, metapath):
-        sha2, sha1, md5, js = None, None, None, None
+        sha2, sha1, md5, created, js = None, None, None, None, None
         try:
             with open(metapath, 'r') as meta: js = json.load(meta)
             try: sha1 = js['digest.sha1']
             except: pass
             try: md5 = js['digest.md5']
+            except: pass
+            try: created = js['storageItem-created']
             except: pass
         except: pass
         if sha1 == None:
@@ -350,7 +350,8 @@ class Upload(object):
         sha2 = self.calcChecksum(hashlib.sha256(), path)
         if sha1 == None: sha1 = self.calcChecksum(hashlib.sha1(), path)
         if md5 == None: md5 = self.calcChecksum(hashlib.md5(), path)
-        return sha2, sha1, md5
+        if created == None: created = str(int(round(1000*os.stat(path).st_ctime)))
+        return sha2, sha1, md5, created, created
 
     def acquireLocation3(self, path, metapath, repos):
         repo, store, conf = None, None, self.acquireMetadata3(metapath)
@@ -367,14 +368,16 @@ class Upload(object):
         return repo, store
 
     def acquireChecksums3(self, path, metapath):
-        sha2, sha1, md5 = None, None, None
+        sha2, sha1, md5, created = None, None, None, None
         conf = self.acquireMetadata3(metapath)
         if 'deleted' in conf and conf['deleted'] == 'true': return None
         sha2 = self.calcChecksum(hashlib.sha256(), path)
         if 'sha1' in conf: sha1 = conf['sha1']
         else: sha1 = self.calcChecksum(hashlib.sha1(), path)
         md5 = self.calcChecksum(hashlib.md5(), path)
-        return sha2, sha1, md5
+        if 'creationTime' in conf: created = conf['creationTime']
+        else: created = str(int(round(1000*os.stat(path).st_ctime)))
+        return sha2, sha1, md5, created, created
 
     def acquireMetadata3(self, metapath):
         conf = {}
