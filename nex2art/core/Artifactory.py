@@ -163,7 +163,7 @@ class Artifactory(object):
         def f(r):
             if (r in repset): return
             repset.add(r)
-            if 'repos' in repos[r]:
+            if r in repos and 'repos' in repos[r]:
                 for k in repos[r]['repos']: f(k)
             replist.append(r)
         for r in repos.keys(): f(r)
