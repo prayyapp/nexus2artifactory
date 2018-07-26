@@ -23,6 +23,7 @@ class Permission(Menu):
             if perm["available"].data != True: continue
             path = self.path[:]
             path.extend([permn, "Migrate This Permission"])
+            self.log.debug("Readying Submenu for permission '" + permn + "'.")
             alt = self.submenu(PermissionEdit)
             self.pagedopts.append(self.mkopt(None, permn, '+', path=path, alt=alt))
         if len(self.pagedopts) <= 0:

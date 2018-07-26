@@ -23,6 +23,7 @@ class Group(Menu):
             if group["available"].data != True: continue
             path = self.path[:]
             path.extend([groupn, "Migrate This Group"])
+            self.log.debug("Readying Submenu for group '" + groupn + "'.")
             alt = self.submenu(GroupEdit)
             self.pagedopts.append(self.mkopt(None, groupn, '+', path=path, alt=alt))
         if len(self.pagedopts) <= 0:

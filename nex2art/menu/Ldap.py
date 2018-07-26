@@ -23,6 +23,7 @@ class Ldap(Menu):
             if ldap["available"].data != True: continue
             path = self.path[:]
             path.extend([ldapn, "Migrate This LDAP Config"])
+            self.log.debug("Readying Submenu for LDAP config '" + ldapn + "'.")
             alt = self.submenu(LdapEdit)
             self.pagedopts.append(self.mkopt(None, ldapn, '+', path=path, alt=alt))
         if len(self.pagedopts) <= 0:

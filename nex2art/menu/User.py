@@ -24,6 +24,7 @@ class User(Menu):
             if user["available"].data != True: continue
             path = self.path[:]
             path.extend([usern, "Migrate This User"])
+            self.log.debug("Readying Submenu for user '" + usern + "'.")
             alt = self.submenu(UserEdit)
             self.pagedopts.append(self.mkopt(None, usern, '+', path=path, alt=alt))
         if len(self.pagedopts) <= 0:

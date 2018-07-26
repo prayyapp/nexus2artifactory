@@ -24,6 +24,7 @@ class Repo(Menu):
             repoclass, repotype = repo["Repo Class"].data, repo["Repo Type"].data
             path = self.path[:]
             path.extend([repon, "Migrate This Repo"])
+            self.log.debug("Readying Submenu for repo '" + repon + "'.")
             alt = self.submenu(RepoEdit)
             opt = self.mkopt(None, repon, '+', path=path, alt=alt)
             brack = (' (', ')')
