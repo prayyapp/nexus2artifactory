@@ -168,7 +168,7 @@ class Upload(object):
                         mp = os.path.join(chapdir, meta)
                         if not os.path.isfile(mp): continue
                         blobbase = os.path.splitext(meta)[0]
-                        if self.isNexus3ChecksumFile(chapdir, blobbase): continue
+                        if self.isNexus3ChecksumFile(mp): continue
                         blob = blobbase + '.bytes'
                         ap = os.path.join(chapdir, blob)
                         if not os.path.isfile(ap): continue
@@ -408,7 +408,8 @@ class Upload(object):
             if error: self.parent.prog.stepsmap['Artifacts'][3] += 1
             self.parent.prog.refresh()
 
-    def isNexus3ChecksumFile(self, chapdir, fname):
-        blobpropertiesfile = os.path.join(chapdir, fname + '.properties')
-        blobname = self.acquireMetadata3(blobpropertiesfile)['@BlobStore.blob-name']
-        return blobname.endswith('.md5') or blobname.endswith('.sha1') or blobname.endswith('.sha256')
+    def isNexus3ChecksumFile(self, mp):
+        conf = self.acquireMetadata3(mp)
+        if '@BlobStore.blob-name' not in conf: return True
+        name = conf['@BlobStore.blob-name']
+        return name.endswith('.md5') or name.endswith('.sha1') or name.endswith('.sha256')
