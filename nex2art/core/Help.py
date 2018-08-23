@@ -269,7 +269,9 @@ not be migrated.""",
     "Search Filter": """
 Set a view filter for these results. This can be a number of space-separated
 substrings. Any item who's name contains all of the given substrings will appear
-in the filtered list, and all other items will be hidden.""",
+in the filtered list, and all other items will be hidden. Some field-specific
+filters can also be used: 'type=maven' will show only maven repositories,
+'class=local' will show only hosted repositories, etc.""",
     "Mass Edit": """
 Set values on a number of different items at a time. You may set values on any
 number of fields, and the values you specify will replace the current values of

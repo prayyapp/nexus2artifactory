@@ -43,8 +43,14 @@ class RepoEdit(Menu):
                 newname['val'] = None
 
     def filt(self, filt):
-        name1 = self.scr.state[self.path]["Repo Name (Nexus)"].data
-        name2 = self.scr.state[self.path]["Repo Name (Artifactory)"].data
+        st = self.scr.state[self.path]
+        name1 = st["Repo Name (Nexus)"].data
+        name2 = st["Repo Name (Artifactory)"].data
+        cls = st["Repo Class"].data
+        typ = st["Repo Type"].data
         for f in filt:
-            if f not in name1 and f not in name2: return False
+            if '=' in f:
+                if f.startswith('class=') and f != 'class=' + cls: return False
+                elif f.startswith('type=') and f != 'type=' + typ: return False
+            elif f not in name1 and f not in name2: return False
         return True

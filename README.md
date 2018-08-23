@@ -216,6 +216,39 @@ list, and then type <kbd>6</kbd> to unmark the repository.
 Now, the error is gone. The error has disappeared on the main menu as well, and
 the migration can now be run.
 
+Search Filters
+--------------
+
+When viewing a very large list of items (repositories, users, groups, etc), it
+can be helpful to only work on a subset of that list with certain properties,
+search for a specific item, etc. The Search Filter key (<kbd>f</kbd>) can be
+used to narrow down the list to only the items you want to see. This can make it
+easier to find the items you want to modify. Alternatively, you can batch-update
+all items that match the filter using the Mass Edit key (<kbd>m</kbd>).
+
+The search filter is a string consisting of any number of space-separated terms.
+The filter will match any item that matches all of those terms; it will filter
+out all items that do not match at least one term. A term can be a part of an
+item's name, or a `property=value` pair (not all properties are currently
+supported, but will be eventually). For example, to view only hosted maven
+repositories with a name containing "devel", the search filter would be:
+
+```
+devel class=local type=maven
+```
+
+The following term types are currently supported:
+
+| Term            | Description                                               | Example        |
+| --------------- | --------------------------------------------------------- | -------------- |
+| `<text>`        | A matching item's name includes `<text>`.                 | `devel`        |
+| `type=<type>`   | A matching repository's package type is `<type>`.         | `type=docker`  |
+| `class=<class>` | A matching repository is `local`, `remote`, or `virtual`. | `class=remote` |
+
+More property term types will be supported in the future. Other ways to combine
+terms (OR and NOT operators, grouping, etc) will probably be supported in the
+future.
+
 Options
 -------
 
