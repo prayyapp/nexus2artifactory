@@ -10,6 +10,7 @@ Currently, the following data can be migrated:
 - local (hosted), remote (proxy), and virtual (group) repositories
   - note that Bower repositories are not yet supported
 - artifacts stored in local (hosted) repositories
+  - artifacts stored in remote caches are NOT currently migrated
 - users, groups (roles), and permissions (privileges)
 - LDAP configurations
 
