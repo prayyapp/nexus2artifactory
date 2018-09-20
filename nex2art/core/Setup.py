@@ -36,8 +36,8 @@ class PosIntFilter(object):
 class Setup(object):
     def __init__(self, argssource):
         self.argssource = argssource
-        self.fixssl()
         self.args = self.getargs()
+        if self.args.force_tls10: self.fixssl()
         self.startlogging(self.args)
 
     # Some versions of SSL have a bug that causes an exception to be thrown when
@@ -84,6 +84,7 @@ class Setup(object):
             "the file to use for logging (default: don't write logs)",
             "the threshold to use for the logging level, if logs are written",
             "whether to disable ssl verification (e.g. for self-signed certs)",
+            "whether to force TLSv1.0 (circumvents a bug with TLSv1.1/1.2 in some SSL libaries)",
             "the configuration file to load automatically on start",
             "migrate immediately without displaying the UI (requires -f)",
             "suppress logging to the console in non-interactive mode",
@@ -97,14 +98,16 @@ class Setup(object):
                             default='info', help=help[2])
         parser.add_argument('-s', '--ssl-no-verify',
                             action='store_true', help=help[3])
-        parser.add_argument('-f', '--load-file', help=help[4])
+        parser.add_argument('-o', '--force-tls10',
+                            action='store_true', help=help[4])
+        parser.add_argument('-f', '--load-file', help=help[5])
         parser.add_argument('-n', '--non-interactive',
-                            action='store_true', help=help[5])
-        parser.add_argument('-q', '--silent', action='store_true', help=help[6])
+                            action='store_true', help=help[6])
+        parser.add_argument('-q', '--silent', action='store_true', help=help[7])
         parser.add_argument('-r', '--retries', type=int, choices=filt,
-                            default=3, help=help[7])
+                            default=3, help=help[8])
         parser.add_argument('-t', '--threads', type=int, choices=filt,
-                            default=4, help=help[8])
+                            default=4, help=help[9])
         args = parser.parse_args(self.argssource)
         if args.load_file == None and args.non_interactive:
             parser.error("option --load-file is required for non-interactive mode")
