@@ -177,32 +177,38 @@ class Upload(object):
 
     def runThread(self, queue, url, headers):
         while True:
-            item = queue.get()
-            if item == None: break
-            if isinstance(item, Flush):
-                item.threadWait()
-                continue
-            if len(item) == 5:
-                lpath, mpath, rep, rpath, props = item
+            try:
+                item = queue.get()
+                if item == None: break
+                if isinstance(item, Flush):
+                    item.threadWait()
+                    continue
+                if len(item) == 5:
+                    lpath, mpath, rep, rpath, props = item
+                    if self.scr.nexus.nexusversion == 3:
+                        csdata = self.acquireChecksums3(lpath, mpath)
+                        if csdata == None: continue
+                    else: csdata = self.acquireChecksums2(lpath, mpath)
+                    self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                    continue
+                path, metapath, repo = item
                 if self.scr.nexus.nexusversion == 3:
-                    csdata = self.acquireChecksums3(lpath, mpath)
-                    if csdata == None: continue
-                else: csdata = self.acquireChecksums2(lpath, mpath)
-                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
-                continue
-            path, metapath, repo = item
-            if self.scr.nexus.nexusversion == 3:
-                locdata = self.acquireLocation3(path, metapath, repo)
-                if locdata == None: continue
-                repo, store = locdata
-            else: store = self.acquireLocation2(path, metapath)
-            paths = self.deployPaths(path, metapath, repo, store)
-            for lpath, mpath, rep, rpath, props in paths:
-                if self.scr.nexus.nexusversion == 3:
-                    csdata = self.acquireChecksums3(lpath, mpath)
-                    if csdata == None: continue
-                else: csdata = self.acquireChecksums2(lpath, mpath)
-                self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                    locdata = self.acquireLocation3(path, metapath, repo)
+                    if locdata == None: continue
+                    repo, store = locdata
+                else: store = self.acquireLocation2(path, metapath)
+                paths = self.deployPaths(path, metapath, repo, store)
+                for lpath, mpath, rep, rpath, props in paths:
+                    try:
+                        if self.scr.nexus.nexusversion == 3:
+                            csdata = self.acquireChecksums3(lpath, mpath)
+                            if csdata == None: continue
+                        else: csdata = self.acquireChecksums2(lpath, mpath)
+                        self.deploy(url, headers, props, lpath, rep, rpath, csdata)
+                    except BaseException as ex:
+                        self.log.exception("Error in upload thread:")
+            except BaseException as ex:
+                self.log.exception("Error in upload thread:")
 
     def deploy(self, url, headers, props, localpath, repo, repopath, csdata):
         sha2, sha1, md5, created, modified = csdata
