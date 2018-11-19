@@ -76,7 +76,7 @@ class Setup(object):
             stdouth.setFormatter(formatter)
             logger.addHandler(stdouth)
         msg = "\n\nNexus To Artifactory Migration Tool\n\n"
-        logger.info('\n' + '='*60 + msg + '='*60 + '\n')
+        logger.critical('\n' + '='*60 + msg + '='*60 + '\n')
 
     def getargs(self):
         help = [

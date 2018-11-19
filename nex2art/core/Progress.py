@@ -72,7 +72,7 @@ class Progress(object):
             log.append("\n")
         timerep = self.drawTime(int(round(time.time() - self.started)))
         log.append("\n " + msg + "\n Completed in " + timerep + "\n")
-        self.scr.log.info(''.join(log))
+        self.scr.log.critical(''.join(log))
 
     def render(self, result=None):
         unicurses.wclear(self.scr.win)
