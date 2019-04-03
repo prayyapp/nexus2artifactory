@@ -255,7 +255,7 @@ class Upload(object):
             return [(localpath, metapath, repo, repopath, {})]
         typ = repomap[self.reponames[repo]]['type']
         if typ == 'maven':
-            return self.maven.deployPaths(localpath, metapath, repo, repopath)
+            return self.maven.deployPaths(localpath, repo, repopath)
         elif typ == 'docker':
             return self.docker.deployPaths(localpath, metapath, repo, repopath)
         elif typ == 'gitlfs':
