@@ -191,12 +191,12 @@ class Upload(object):
                     else: csdata = self.acquireChecksums2(lpath, mpath)
                     self.deploy(url, headers, props, lpath, rep, rpath, csdata)
                     continue
-                path, metapath, repo = item
+                path, repo = item
                 if self.scr.nexus.nexusversion == 3:
-                    locdata = self.acquireLocation3(path, metapath, repo)
+                    locdata = self.acquireLocation3(path, repo)
                     if locdata == None: continue
                     repo, store = locdata
-                else: store = self.acquireLocation2(path, metapath)
+                else: store = self.acquireLocation2(path)
                 paths = self.deployPaths(path, repo, store)
                 for lpath, mpath, rep, rpath, props in paths:
                     try:
@@ -321,7 +321,7 @@ class Upload(object):
             stat = str(ex)
         return stat
 
-    def acquireLocation2(self, path, metapath):
+    def acquireLocation2(self, path):
         store, js = None, None
         try:
             with open(metapath, 'r') as meta: js = json.load(meta)
@@ -334,7 +334,7 @@ class Upload(object):
                     break
         return store
 
-    def acquireChecksums2(self, path, metapath):
+    def acquireChecksums2(self, path):
         sha2, sha1, md5, created, js = None, None, None, None, None
         try:
             with open(metapath, 'r') as meta: js = json.load(meta)
@@ -359,7 +359,7 @@ class Upload(object):
         if created == None: created = str(int(round(1000*os.stat(path).st_ctime)))
         return sha2, sha1, md5, created, created
 
-    def acquireLocation3(self, path, metapath, repos):
+    def acquireLocation3(self, path, repos):
         repo, store, conf = None, None, self.acquireMetadata3(metapath)
         if 'deleted' in conf and conf['deleted'] == 'true': return None
         if '@Bucket.repo-name' in conf:
@@ -373,7 +373,7 @@ class Upload(object):
         if repo == None or store == None: return None
         return repo, store
 
-    def acquireChecksums3(self, path, metapath):
+    def acquireChecksums3(self, path):
         sha2, sha1, md5, created = None, None, None, None
         conf = self.acquireMetadata3(metapath)
         if 'deleted' in conf and conf['deleted'] == 'true': return None
