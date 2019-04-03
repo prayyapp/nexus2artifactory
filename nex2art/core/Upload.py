@@ -249,7 +249,7 @@ class Upload(object):
         self.log.error("Unable to deploy artifact to %s after %s retries.", puturl, attempt)
         self.incFileCount(repo + ':' + repopath, True)
 
-    def deployPaths(self, localpath, metapath, repo, repopath):
+    def deployPaths(self, localpath, repo, repopath):
         repomap = self.scr.nexus.repomap
         if repo not in self.reponames or self.reponames[repo] not in repomap:
             return [(localpath, metapath, repo, repopath, {})]
