@@ -197,7 +197,7 @@ class Upload(object):
                     if locdata == None: continue
                     repo, store = locdata
                 else: store = self.acquireLocation2(path, metapath)
-                paths = self.deployPaths(path, metapath, repo, store)
+                paths = self.deployPaths(path, repo, store)
                 for lpath, mpath, rep, rpath, props in paths:
                     try:
                         if self.scr.nexus.nexusversion == 3:
@@ -252,19 +252,19 @@ class Upload(object):
     def deployPaths(self, localpath, repo, repopath):
         repomap = self.scr.nexus.repomap
         if repo not in self.reponames or self.reponames[repo] not in repomap:
-            return [(localpath, metapath, repo, repopath, {})]
+            return [(localpath, repo, repopath, {})]
         typ = repomap[self.reponames[repo]]['type']
         if typ == 'maven':
             return self.maven.deployPaths(localpath, repo, repopath)
         elif typ == 'docker':
-            return self.docker.deployPaths(localpath, metapath, repo, repopath)
+            return self.docker.deployPaths(localpath, repo, repopath)
         elif typ == 'gitlfs':
-            return self.gitlfs.deployPaths(localpath, metapath, repo, repopath)
+            return self.gitlfs.deployPaths(localpath, repo, repopath)
         elif typ == 'npm' and self.scr.nexus.nexusversion == 3:
-            return self.npm.deployPaths(localpath, metapath, repo, repopath)
+            return self.npm.deployPaths(localpath, repo, repopath)
         elif typ == 'gems' and self.scr.nexus.nexusversion == 2:
-            return self.gems.deployPaths(localpath, metapath, repo, repopath)
-        return [(localpath, metapath, repo, repopath, {})]
+            return self.gems.deployPaths(localpath, repo, repopath)
+        return [(localpath, repo, repopath, {})]
 
     def cleanuplistgenerator(self):
         for x in self.maven.cleanup(): yield x

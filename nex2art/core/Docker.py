@@ -26,21 +26,21 @@ class Docker(object):
         except:
             self.log.exception("Error reading Docker manifest %s:", manif)
 
-    def deployPaths(self, localpath, metapath, repo, repopath):
+    def deployPaths(self, localpath, repo, repopath):
         parts = repopath.split('/')
         if parts[0] != '' or parts[1] != 'v2':
-            yield (localpath, metapath, repo, repopath, {})
+            yield (localpath, repo, repopath, {})
         elif (parts[2] == '-' and parts[3] == 'blobs'
                   and self.getChecksum(parts[4]) != None and len(parts) == 5):
             sha2 = self.getChecksum(parts[4])
             reqs = []
             with self.lock:
                 if sha2 not in self.discovered:
-                    self.discovered[sha2] = localpath, metapath
+                    self.discovered[sha2] = localpath
                 if sha2 in self.requested:
                     reqs = self.requested[sha2]
                     del self.requested[sha2]
-            for req in reqs: yield (localpath, metapath, req[0], req[1], {})
+            for req in reqs: yield (localpath, req[0], req[1], {})
         elif (parts[-2] == 'manifests' and len(parts) > 4
                   and self.getChecksum(parts[-1]) == None):
             tagpath = '/' + '/'.join(parts[2:-2]) + '/' + parts[-1]
@@ -49,7 +49,7 @@ class Docker(object):
             props['docker.manifest'] = parts[-1]
             props['docker.manifest.type'] = self.mtype
             manifpath = tagpath + '/manifest.json'
-            yield (localpath, metapath, repo, manifpath, props)
+            yield (localpath, repo, manifpath, props)
             for layer in self.extractShas(localpath):
                 sha2 = self.getChecksum(layer)
                 if sha2 == None:

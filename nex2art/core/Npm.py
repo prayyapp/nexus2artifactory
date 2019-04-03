@@ -21,11 +21,11 @@ class Npm(object):
             return js['name'].endswith(name)
         except: return False
 
-    def deployPaths(self, localpath, metapath, repo, repopath):
+    def deployPaths(self, localpath, repo, repopath):
         parts = repopath.split('/')
-        if '-' in parts: return [(localpath, metapath, repo, repopath, {})]
+        if '-' in parts: return [(localpath, repo, repopath, {})]
         if self.checkMeta(metapath) and self.checkContent(localpath, parts[-1]):
             msg = "Artifactory will regenerate this metadata file"
             self.log.info("Skipping artifact %s, %s", repo + repopath, msg)
             return []
-        return [(localpath, metapath, repo, repopath, {})]
+        return [(localpath, repo, repopath, {})]
